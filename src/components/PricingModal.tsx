@@ -69,13 +69,7 @@ const PricingModal: React.FC<PricingModalProps> = ({ isOpen, onClose }) => {
           </div>
 
           {/* Monthly */}
-          <div className="border-2 border-blue-500 rounded-lg p-6 text-center relative">
-            <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-              <span className="bg-blue-500 text-white px-3 py-1 rounded-full text-xs font-medium">
-                Most Popular
-              </span>
-            </div>
-            
+          <div className="border-2 border-blue-500 rounded-lg p-6 text-center">
             <div className="mb-4">
               <h3 className="text-lg font-semibold">Monthly</h3>
               <div className="text-3xl font-bold text-blue-600 mt-2">$15</div>
