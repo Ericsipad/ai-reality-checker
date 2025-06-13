@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -6,15 +7,17 @@ import UploadBox from '@/components/UploadBox';
 import UsageModal from '@/components/UsageModal';
 import ResultModal from '@/components/ResultModal';
 import PricingModal from '@/components/PricingModal';
-import { useUsageTracking } from '@/hooks/useUsageTracking';
-import { Eye, FileText, Image as ImageIcon, LogIn, UserPlus, CreditCard } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { useSupabaseUsageTracking } from '@/hooks/useSupabaseUsageTracking';
+import { Eye, FileText, Image as ImageIcon, LogIn, UserPlus, CreditCard, LogOut } from 'lucide-react';
 
 const Index = () => {
   const [showUsageModal, setShowUsageModal] = useState(false);
   const [showResultModal, setShowResultModal] = useState(false);
   const [showPricingModal, setShowPricingModal] = useState(false);
   const [analysisResult, setAnalysisResult] = useState(null);
-  const { remainingChecks, totalChecks, useCheck } = useUsageTracking();
+  const { user, signOut } = useAuth();
+  const { remainingChecks, totalChecks, useCheck, loading } = useSupabaseUsageTracking();
   const { toast } = useToast();
 
   // Mock analysis results
@@ -44,6 +47,15 @@ const Index = () => {
   };
 
   const handleUpload = async (content: File | string) => {
+    if (!user) {
+      toast({
+        title: "Please sign in",
+        description: "You need to sign in to use AI detection.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (!useCheck()) {
       toast({
         title: "No checks remaining",
@@ -75,31 +87,65 @@ const Index = () => {
     setShowPricingModal(true);
   };
 
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      toast({
+        title: "Signed out",
+        description: "You've been signed out successfully.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to sign out. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen gradient-bg">
       <div className="container mx-auto px-4 py-8">
         {/* Top Navigation */}
         <div className="flex justify-end mb-8">
           <div className="flex space-x-2">
-            <Button
-              asChild
-              variant="outline"
-              className="bg-white/10 border-white/30 text-white hover:bg-white/20"
-            >
-              <Link to="/signin">
-                <LogIn className="h-4 w-4 mr-2" />
-                Sign In
-              </Link>
-            </Button>
-            <Button
-              asChild
-              className="bg-white text-purple-600 hover:bg-white/90"
-            >
-              <Link to="/signup">
-                <UserPlus className="h-4 w-4 mr-2" />
-                Sign Up
-              </Link>
-            </Button>
+            {user ? (
+              <div className="flex items-center space-x-2">
+                <span className="text-white/80 text-sm">
+                  Welcome back!
+                </span>
+                <Button
+                  onClick={handleSignOut}
+                  variant="outline"
+                  className="bg-white/10 border-white/30 text-white hover:bg-white/20"
+                >
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Sign Out
+                </Button>
+              </div>
+            ) : (
+              <>
+                <Button
+                  asChild
+                  variant="outline"
+                  className="bg-white/10 border-white/30 text-white hover:bg-white/20"
+                >
+                  <Link to="/auth">
+                    <LogIn className="h-4 w-4 mr-2" />
+                    Sign In
+                  </Link>
+                </Button>
+                <Button
+                  asChild
+                  className="bg-white text-purple-600 hover:bg-white/90"
+                >
+                  <Link to="/auth">
+                    <UserPlus className="h-4 w-4 mr-2" />
+                    Sign Up
+                  </Link>
+                </Button>
+              </>
+            )}
           </div>
         </div>
 
@@ -111,23 +157,37 @@ const Index = () => {
           <p className="text-xl text-white/80 mb-6">
             We run your content through 27 expert AI tools — and give you one easy verdict.
           </p>
-          <div className="flex justify-center space-x-4">
-            <Button
-              onClick={() => setShowUsageModal(true)}
-              variant="outline"
-              className="bg-white/10 border-white/30 text-white hover:bg-white/20"
-            >
-              <Eye className="h-4 w-4 mr-2" />
-              {remainingChecks} checks left
-            </Button>
-            <Button
-              onClick={handleBuyMoreChecks}
-              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
-            >
-              <CreditCard className="h-4 w-4 mr-2" />
-              Buy More Checks
-            </Button>
-          </div>
+          {user && !loading && (
+            <div className="flex justify-center space-x-4">
+              <Button
+                onClick={() => setShowUsageModal(true)}
+                variant="outline"
+                className="bg-white/10 border-white/30 text-white hover:bg-white/20"
+              >
+                <Eye className="h-4 w-4 mr-2" />
+                {remainingChecks} checks left
+              </Button>
+              <Button
+                onClick={handleBuyMoreChecks}
+                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
+              >
+                <CreditCard className="h-4 w-4 mr-2" />
+                Buy More Checks
+              </Button>
+            </div>
+          )}
+          {!user && (
+            <div className="flex justify-center">
+              <Button
+                asChild
+                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
+              >
+                <Link to="/auth">
+                  Get Started - 5 Free Checks
+                </Link>
+              </Button>
+            </div>
+          )}
         </div>
 
         {/* Upload Boxes */}
@@ -166,19 +226,23 @@ const Index = () => {
       </div>
 
       {/* Modals */}
-      <UsageModal
-        isOpen={showUsageModal}
-        onClose={() => setShowUsageModal(false)}
-        remainingChecks={remainingChecks}
-        totalChecks={totalChecks}
-        onUpgrade={handleUpgrade}
-      />
-      
-      <ResultModal
-        isOpen={showResultModal}
-        onClose={() => setShowResultModal(false)}
-        result={analysisResult}
-      />
+      {user && (
+        <>
+          <UsageModal
+            isOpen={showUsageModal}
+            onClose={() => setShowUsageModal(false)}
+            remainingChecks={remainingChecks}
+            totalChecks={totalChecks}
+            onUpgrade={handleUpgrade}
+          />
+          
+          <ResultModal
+            isOpen={showResultModal}
+            onClose={() => setShowResultModal(false)}
+            result={analysisResult}
+          />
+        </>
+      )}
 
       <PricingModal
         isOpen={showPricingModal}
