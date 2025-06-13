@@ -15,16 +15,23 @@ interface UsageModalProps {
   onClose: () => void;
   remainingChecks: number;
   totalChecks: number;
+  onUpgrade?: () => void;
 }
 
 const UsageModal: React.FC<UsageModalProps> = ({ 
   isOpen, 
   onClose, 
   remainingChecks, 
-  totalChecks 
+  totalChecks,
+  onUpgrade
 }) => {
   const usedChecks = totalChecks - remainingChecks;
   const progressValue = (usedChecks / totalChecks) * 100;
+
+  const handleUpgrade = () => {
+    onClose();
+    onUpgrade?.();
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -72,6 +79,7 @@ const UsageModal: React.FC<UsageModalProps> = ({
               Close
             </Button>
             <Button 
+              onClick={handleUpgrade}
               className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
             >
               Upgrade

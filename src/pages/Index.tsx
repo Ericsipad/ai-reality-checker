@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -69,6 +68,10 @@ const Index = () => {
   };
 
   const handleBuyMoreChecks = () => {
+    setShowPricingModal(true);
+  };
+
+  const handleUpgrade = () => {
     setShowPricingModal(true);
   };
 
@@ -168,6 +171,7 @@ const Index = () => {
         onClose={() => setShowUsageModal(false)}
         remainingChecks={remainingChecks}
         totalChecks={totalChecks}
+        onUpgrade={handleUpgrade}
       />
       
       <ResultModal
