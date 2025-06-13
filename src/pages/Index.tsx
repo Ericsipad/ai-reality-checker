@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -74,7 +73,7 @@ const Index = () => {
             IsThisRealOrAI
           </h1>
           <p className="text-xl text-white/80 mb-6">
-            Detect AI-generated content with advanced AI analysis
+            Using 27 paid AI detection APIs to confidently determine the authenticity of your content
           </p>
           <div className="flex justify-center space-x-4">
             <Button
