@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -5,12 +6,14 @@ import { Link } from 'react-router-dom';
 import UploadBox from '@/components/UploadBox';
 import UsageModal from '@/components/UsageModal';
 import ResultModal from '@/components/ResultModal';
+import PricingModal from '@/components/PricingModal';
 import { useUsageTracking } from '@/hooks/useUsageTracking';
 import { Eye, FileText, Image as ImageIcon, LogIn, UserPlus, CreditCard } from 'lucide-react';
 
 const Index = () => {
   const [showUsageModal, setShowUsageModal] = useState(false);
   const [showResultModal, setShowResultModal] = useState(false);
+  const [showPricingModal, setShowPricingModal] = useState(false);
   const [analysisResult, setAnalysisResult] = useState(null);
   const { remainingChecks, totalChecks, useCheck } = useUsageTracking();
   const { toast } = useToast();
@@ -66,10 +69,7 @@ const Index = () => {
   };
 
   const handleBuyMoreChecks = () => {
-    toast({
-      title: "Coming Soon!",
-      description: "Credit purchasing will be available soon.",
-    });
+    setShowPricingModal(true);
   };
 
   return (
@@ -174,6 +174,11 @@ const Index = () => {
         isOpen={showResultModal}
         onClose={() => setShowResultModal(false)}
         result={analysisResult}
+      />
+
+      <PricingModal
+        isOpen={showPricingModal}
+        onClose={() => setShowPricingModal(false)}
       />
     </div>
   );
