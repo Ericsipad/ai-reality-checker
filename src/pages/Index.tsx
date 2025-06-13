@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -30,32 +29,6 @@ const Index = () => {
   
   const { toast } = useToast();
 
-  // Mock analysis results
-  const generateMockResult = () => {
-    const results = [
-      {
-        confidence: 87,
-        isAI: true,
-        explanation: "This content shows several indicators of AI generation, including repetitive sentence structures, unnatural word choices, and lack of personal voice. The writing style is consistent with large language model outputs, particularly in its formal tone and generic phrasing patterns.",
-        sources: ["TheHive.ai", "Originality.ai", "GPT Analysis"]
-      },
-      {
-        confidence: 92,
-        isAI: false,
-        explanation: "This appears to be authentic human-created content. The writing exhibits natural variations in sentence length, personal anecdotes, and spontaneous thought patterns typical of human expression. No significant AI-generation markers were detected across our analysis tools.",
-        sources: ["TheHive.ai", "Originality.ai", "Sensity.ai", "GPT Analysis"]
-      },
-      {
-        confidence: 76,
-        isAI: true,
-        explanation: "Moderate confidence that this is AI-generated content. While some elements appear natural, the overall structure and certain phrase patterns suggest algorithmic generation. The content lacks the inconsistencies and personal touches typically found in human writing.",
-        sources: ["Originality.ai", "GPT Analysis"]
-      }
-    ];
-    
-    return results[Math.floor(Math.random() * results.length)];
-  };
-
   const handleUpload = async (content: File | string) => {
     if (!useCheck()) {
       toast({
@@ -69,17 +42,46 @@ const Index = () => {
       return;
     }
 
-    // Simulate API processing
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    const result = generateMockResult();
-    setAnalysisResult(result);
-    setShowResultModal(true);
-    
-    toast({
-      title: "Analysis complete!",
-      description: `Detection confidence: ${result.confidence}%`,
-    });
+    try {
+      let textToAnalyze = '';
+      
+      // Handle file upload vs direct text
+      if (typeof content === 'string') {
+        textToAnalyze = content;
+      } else {
+        // Handle file reading
+        textToAnalyze = await content.text();
+      }
+
+      console.log('Sending text to AI analysis:', textToAnalyze.substring(0, 100) + '...');
+
+      // Call the actual OpenAI edge function
+      const { data, error } = await supabase.functions.invoke('analyze-text', {
+        body: { text: textToAnalyze }
+      });
+
+      if (error) {
+        console.error('Edge function error:', error);
+        throw new Error('Failed to analyze text');
+      }
+
+      console.log('AI analysis result:', data);
+      
+      setAnalysisResult(data);
+      setShowResultModal(true);
+      
+      toast({
+        title: "Analysis complete!",
+        description: `Detection confidence: ${data.confidence}%`,
+      });
+    } catch (error) {
+      console.error('Analysis error:', error);
+      toast({
+        title: "Analysis failed",
+        description: "There was an error analyzing your content. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleBuyMoreChecks = () => {
@@ -210,6 +212,7 @@ const Index = () => {
             description="Detect AI-generated or manipulated images"
             icon={<ImageIcon className="h-12 w-12 text-white" />}
             acceptedTypes="image/*"
+            disabled={true}
             onUpload={handleUpload}
           />
           
@@ -218,6 +221,7 @@ const Index = () => {
             description="Identify deepfakes and AI-generated videos"
             icon={<Eye className="h-12 w-12 text-white" />}
             acceptedTypes="video/*"
+            disabled={true}
             onUpload={handleUpload}
           />
         </div>
