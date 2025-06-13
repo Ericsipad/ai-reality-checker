@@ -219,7 +219,7 @@ const Index = () => {
             title="Image"
             description="Detect AI-generated or manipulated images"
             icon={<ImageIcon className="h-12 w-12 text-white" />}
-            acceptedTypes="image/*"
+            acceptedTypes="image/png,image/jpeg,image/jpg,image/gif,image/webp,image/bmp,image/tiff"
             disabled={false}
             onUpload={handleUpload}
           />
