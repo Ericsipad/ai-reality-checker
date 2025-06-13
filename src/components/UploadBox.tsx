@@ -173,10 +173,11 @@ const UploadBox: React.FC<UploadBoxProps> = ({
               id={`upload-${title.toLowerCase()}`}
               disabled={disabled}
             />
-            <label htmlFor={disabled ? '' : `upload-${title.toLowerCase()}`}>
+            <label htmlFor={`upload-${title.toLowerCase()}`} className={disabled ? 'cursor-not-allowed' : 'cursor-pointer'}>
               <Button 
-                className={`w-full bg-white/20 hover:bg-white/30 text-white border border-white/30 disabled:opacity-50 ${disabled ? '' : 'cursor-pointer'}`}
+                className="w-full bg-white/20 hover:bg-white/30 text-white border border-white/30 disabled:opacity-50 cursor-pointer"
                 disabled={disabled}
+                type="button"
               >
                 <Upload className="h-4 w-4 mr-2" />
                 {disabled ? 'Coming Soon' : `Upload ${title}`}
