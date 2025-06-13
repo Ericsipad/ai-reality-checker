@@ -170,19 +170,22 @@ const UploadBox: React.FC<UploadBoxProps> = ({
               accept={acceptedTypes}
               onChange={handleFileUpload}
               className="hidden"
-              id={`upload-${title.toLowerCase()}`}
+              id={`file-upload-${title.toLowerCase()}`}
               disabled={disabled}
             />
-            <label htmlFor={`upload-${title.toLowerCase()}`} className={disabled ? 'cursor-not-allowed' : 'cursor-pointer'}>
-              <Button 
-                className="w-full bg-white/20 hover:bg-white/30 text-white border border-white/30 disabled:opacity-50 cursor-pointer"
-                disabled={disabled}
-                type="button"
-              >
-                <Upload className="h-4 w-4 mr-2" />
-                {disabled ? 'Coming Soon' : `Upload ${title}`}
-              </Button>
-            </label>
+            <Button 
+              onClick={() => {
+                if (!disabled) {
+                  document.getElementById(`file-upload-${title.toLowerCase()}`)?.click();
+                }
+              }}
+              className="w-full bg-white/20 hover:bg-white/30 text-white border border-white/30 disabled:opacity-50"
+              disabled={disabled}
+              type="button"
+            >
+              <Upload className="h-4 w-4 mr-2" />
+              {disabled ? 'Coming Soon' : `Upload ${title}`}
+            </Button>
           </div>
         )}
       </div>
