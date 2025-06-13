@@ -6,7 +6,7 @@ import UploadBox from '@/components/UploadBox';
 import UsageModal from '@/components/UsageModal';
 import ResultModal from '@/components/ResultModal';
 import { useUsageTracking } from '@/hooks/useUsageTracking';
-import { Eye, FileText, Image as ImageIcon, LogIn, UserPlus } from 'lucide-react';
+import { Eye, FileText, Image as ImageIcon, LogIn, UserPlus, CreditCard } from 'lucide-react';
 
 const Index = () => {
   const [showUsageModal, setShowUsageModal] = useState(false);
@@ -65,6 +65,13 @@ const Index = () => {
     });
   };
 
+  const handleBuyMoreChecks = () => {
+    toast({
+      title: "Coming Soon!",
+      description: "Credit purchasing will be available soon.",
+    });
+  };
+
   return (
     <div className="min-h-screen gradient-bg">
       <div className="container mx-auto px-4 py-8">
@@ -96,7 +103,7 @@ const Index = () => {
         {/* Header */}
         <div className="text-center mb-12">
           <h1 className="text-5xl font-bold text-white mb-4">
-            IsThisRealOrAI
+            Is This Real Or AI?
           </h1>
           <p className="text-xl text-white/80 mb-6">
             We run your content through 27 expert AI tools — and give you one easy verdict.
@@ -109,6 +116,13 @@ const Index = () => {
             >
               <Eye className="h-4 w-4 mr-2" />
               {remainingChecks} checks left
+            </Button>
+            <Button
+              onClick={handleBuyMoreChecks}
+              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
+            >
+              <CreditCard className="h-4 w-4 mr-2" />
+              Buy More Checks
             </Button>
           </div>
         </div>
