@@ -43,26 +43,34 @@ const Index = () => {
     }
 
     try {
-      let textToAnalyze = '';
+      let requestBody: { text?: string; image?: string } = {};
       
       // Handle file upload vs direct text
       if (typeof content === 'string') {
-        textToAnalyze = content;
+        requestBody.text = content;
       } else {
-        // Handle file reading
-        textToAnalyze = await content.text();
+        // Handle file type - text or image
+        if (content.type.startsWith('image/')) {
+          // Convert image to base64
+          const arrayBuffer = await content.arrayBuffer();
+          const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+          requestBody.image = `data:${content.type};base64,${base64}`;
+        } else {
+          // Handle text file
+          requestBody.text = await content.text();
+        }
       }
 
-      console.log('Sending text to AI analysis:', textToAnalyze.substring(0, 100) + '...');
+      console.log('Sending content to AI analysis...');
 
       // Call the actual OpenAI edge function
       const { data, error } = await supabase.functions.invoke('analyze-text', {
-        body: { text: textToAnalyze }
+        body: requestBody
       });
 
       if (error) {
         console.error('Edge function error:', error);
-        throw new Error('Failed to analyze text');
+        throw new Error('Failed to analyze content');
       }
 
       console.log('AI analysis result:', data);
@@ -212,7 +220,7 @@ const Index = () => {
             description="Detect AI-generated or manipulated images"
             icon={<ImageIcon className="h-12 w-12 text-white" />}
             acceptedTypes="image/*"
-            disabled={true}
+            disabled={false}
             onUpload={handleUpload}
           />
           
