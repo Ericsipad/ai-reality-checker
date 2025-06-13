@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -5,7 +6,7 @@ import UploadBox from '@/components/UploadBox';
 import UsageModal from '@/components/UsageModal';
 import ResultModal from '@/components/ResultModal';
 import { useUsageTracking } from '@/hooks/useUsageTracking';
-import { Eye, FileText, Image as ImageIcon } from 'lucide-react';
+import { Eye, FileText, Image as ImageIcon, LogIn, UserPlus } from 'lucide-react';
 
 const Index = () => {
   const [showUsageModal, setShowUsageModal] = useState(false);
@@ -64,9 +65,44 @@ const Index = () => {
     });
   };
 
+  const handleSignIn = () => {
+    toast({
+      title: "Sign In",
+      description: "Sign in functionality will be implemented soon!",
+    });
+  };
+
+  const handleSignUp = () => {
+    toast({
+      title: "Sign Up",
+      description: "Sign up functionality will be implemented soon!",
+    });
+  };
+
   return (
     <div className="min-h-screen gradient-bg">
       <div className="container mx-auto px-4 py-8">
+        {/* Top Navigation */}
+        <div className="flex justify-end mb-8">
+          <div className="flex space-x-2">
+            <Button
+              onClick={handleSignIn}
+              variant="outline"
+              className="bg-white/10 border-white/30 text-white hover:bg-white/20"
+            >
+              <LogIn className="h-4 w-4 mr-2" />
+              Sign In
+            </Button>
+            <Button
+              onClick={handleSignUp}
+              className="bg-white text-purple-600 hover:bg-white/90"
+            >
+              <UserPlus className="h-4 w-4 mr-2" />
+              Sign Up
+            </Button>
+          </div>
+        </div>
+
         {/* Header */}
         <div className="text-center mb-12">
           <h1 className="text-5xl font-bold text-white mb-4">
@@ -117,7 +153,7 @@ const Index = () => {
         {/* Footer */}
         <div className="text-center mt-16">
           <p className="text-white/60 text-sm">
-            Powered by TheHive.ai, Originality.ai, Sensity.ai, and OpenAI GPT
+            A Vobius Labs Product
           </p>
         </div>
       </div>
