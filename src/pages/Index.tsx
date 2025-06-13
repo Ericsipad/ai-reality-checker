@@ -166,7 +166,7 @@ const Index = () => {
                 className="bg-white/10 border-white/30 text-white hover:bg-white/20"
               >
                 <Eye className="h-4 w-4 mr-2" />
-                {remainingChecks} Free Checks left
+                {remainingChecks} Free Checks left • No signup required
               </Button>
               {user && (
                 <Button
@@ -187,21 +187,6 @@ const Index = () => {
                   </Link>
                 </Button>
               )}
-            </div>
-          )}
-          {!user && remainingChecks > 0 && (
-            <div className="mt-4">
-              <p className="text-white/70 text-sm">
-                Try {remainingChecks} free checks • No signup required
-              </p>
-              <Button
-                asChild
-                className="mt-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
-              >
-                <Link to="/auth">
-                  Sign up for more checks & features
-                </Link>
-              </Button>
             </div>
           )}
         </div>
