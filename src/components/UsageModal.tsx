@@ -9,6 +9,8 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
+import { Link } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface UsageModalProps {
   isOpen: boolean;
@@ -25,6 +27,7 @@ const UsageModal: React.FC<UsageModalProps> = ({
   totalChecks,
   onUpgrade
 }) => {
+  const { user } = useAuth();
   const usedChecks = totalChecks - remainingChecks;
   const progressValue = (usedChecks / totalChecks) * 100;
 
@@ -41,7 +44,7 @@ const UsageModal: React.FC<UsageModalProps> = ({
             Weekly Usage
           </DialogTitle>
           <DialogDescription className="text-center text-gray-600">
-            Track your free AI detection checks
+            {user ? 'Track your free AI detection checks' : 'Free checks (no signup required)'}
           </DialogDescription>
         </DialogHeader>
         
@@ -65,7 +68,10 @@ const UsageModal: React.FC<UsageModalProps> = ({
             <div className="bg-red-50 border border-red-200 rounded-lg p-4">
               <p className="text-red-600 text-sm text-center">
                 You've used all your free checks this week. 
-                Upgrade to continue detecting AI content!
+                {user 
+                  ? " Upgrade to continue detecting AI content!"
+                  : " Sign up to get more checks and premium features!"
+                }
               </p>
             </div>
           )}
@@ -78,13 +84,32 @@ const UsageModal: React.FC<UsageModalProps> = ({
             >
               Close
             </Button>
-            <Button 
-              onClick={handleUpgrade}
-              className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
-            >
-              Upgrade
-            </Button>
+            {user ? (
+              <Button 
+                onClick={handleUpgrade}
+                className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+              >
+                Upgrade
+              </Button>
+            ) : (
+              <Button 
+                asChild
+                className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+              >
+                <Link to="/auth">
+                  Sign Up
+                </Link>
+              </Button>
+            )}
           </div>
+          
+          {!user && (
+            <div className="text-center">
+              <p className="text-xs text-gray-500">
+                Sign up to get unlimited weekly checks, usage history, and premium features
+              </p>
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>

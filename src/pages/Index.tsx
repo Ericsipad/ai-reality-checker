@@ -9,6 +9,7 @@ import ResultModal from '@/components/ResultModal';
 import PricingModal from '@/components/PricingModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSupabaseUsageTracking } from '@/hooks/useSupabaseUsageTracking';
+import { useIPUsageTracking } from '@/hooks/useIPUsageTracking';
 import { Eye, FileText, Image as ImageIcon, LogIn, UserPlus, CreditCard, LogOut } from 'lucide-react';
 
 const Index = () => {
@@ -17,7 +18,15 @@ const Index = () => {
   const [showPricingModal, setShowPricingModal] = useState(false);
   const [analysisResult, setAnalysisResult] = useState(null);
   const { user, signOut } = useAuth();
-  const { remainingChecks, totalChecks, useCheck, loading } = useSupabaseUsageTracking();
+  
+  // Use different tracking hooks based on auth status
+  const authenticatedTracking = useSupabaseUsageTracking();
+  const anonymousTracking = useIPUsageTracking();
+  
+  // Choose the appropriate tracking system
+  const tracking = user ? authenticatedTracking : anonymousTracking;
+  const { remainingChecks, totalChecks, useCheck, loading } = tracking;
+  
   const { toast } = useToast();
 
   // Mock analysis results
@@ -47,19 +56,12 @@ const Index = () => {
   };
 
   const handleUpload = async (content: File | string) => {
-    if (!user) {
-      toast({
-        title: "Please sign in",
-        description: "You need to sign in to use AI detection.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     if (!useCheck()) {
       toast({
         title: "No checks remaining",
-        description: "You've used all your free checks this week. Upgrade to continue!",
+        description: user 
+          ? "You've used all your free checks this week. Upgrade to continue!"
+          : "You've used all your free checks this week. Sign up for more!",
         variant: "destructive",
       });
       setShowUsageModal(true);
@@ -157,7 +159,7 @@ const Index = () => {
           <p className="text-xl text-white/80 mb-6">
             We run your content through 27 expert AI tools — and give you one easy verdict.
           </p>
-          {user && !loading && (
+          {!loading && (
             <div className="flex justify-center space-x-4">
               <Button
                 onClick={() => setShowUsageModal(true)}
@@ -167,23 +169,39 @@ const Index = () => {
                 <Eye className="h-4 w-4 mr-2" />
                 {remainingChecks} checks left
               </Button>
-              <Button
-                onClick={handleBuyMoreChecks}
-                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
-              >
-                <CreditCard className="h-4 w-4 mr-2" />
-                Buy More Checks
-              </Button>
+              {user && (
+                <Button
+                  onClick={handleBuyMoreChecks}
+                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
+                >
+                  <CreditCard className="h-4 w-4 mr-2" />
+                  Buy More Checks
+                </Button>
+              )}
+              {!user && remainingChecks === 0 && (
+                <Button
+                  asChild
+                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
+                >
+                  <Link to="/auth">
+                    Sign Up for More Checks
+                  </Link>
+                </Button>
+              )}
             </div>
           )}
-          {!user && (
-            <div className="flex justify-center">
+          {!user && remainingChecks > 0 && (
+            <div className="mt-4">
+              <p className="text-white/70 text-sm">
+                Try {remainingChecks} free checks • No signup required
+              </p>
               <Button
                 asChild
-                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
+                variant="outline"
+                className="mt-2 bg-white/10 border-white/30 text-white hover:bg-white/20"
               >
                 <Link to="/auth">
-                  Get Started - 5 Free Checks
+                  Sign up for more checks & features
                 </Link>
               </Button>
             </div>
@@ -226,23 +244,19 @@ const Index = () => {
       </div>
 
       {/* Modals */}
-      {user && (
-        <>
-          <UsageModal
-            isOpen={showUsageModal}
-            onClose={() => setShowUsageModal(false)}
-            remainingChecks={remainingChecks}
-            totalChecks={totalChecks}
-            onUpgrade={handleUpgrade}
-          />
-          
-          <ResultModal
-            isOpen={showResultModal}
-            onClose={() => setShowResultModal(false)}
-            result={analysisResult}
-          />
-        </>
-      )}
+      <UsageModal
+        isOpen={showUsageModal}
+        onClose={() => setShowUsageModal(false)}
+        remainingChecks={remainingChecks}
+        totalChecks={totalChecks}
+        onUpgrade={user ? handleUpgrade : () => {}}
+      />
+      
+      <ResultModal
+        isOpen={showResultModal}
+        onClose={() => setShowResultModal(false)}
+        result={analysisResult}
+      />
 
       <PricingModal
         isOpen={showPricingModal}
