@@ -30,6 +30,8 @@ const Index = () => {
   const { toast } = useToast();
 
   const handleUpload = async (content: File | string) => {
+    console.log('handleUpload called with:', typeof content === 'string' ? 'text content' : 'file:', content);
+    
     if (!useCheck()) {
       toast({
         title: "No checks remaining",
@@ -47,21 +49,25 @@ const Index = () => {
       
       // Handle file upload vs direct text
       if (typeof content === 'string') {
+        console.log('Processing text content');
         requestBody.text = content;
       } else {
+        console.log('Processing file content, type:', content.type);
         // Handle file type - text or image
         if (content.type.startsWith('image/')) {
+          console.log('Converting image to base64');
           // Convert image to base64
           const arrayBuffer = await content.arrayBuffer();
           const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
           requestBody.image = `data:${content.type};base64,${base64}`;
         } else {
+          console.log('Reading text file');
           // Handle text file
           requestBody.text = await content.text();
         }
       }
 
-      console.log('Sending content to AI analysis...');
+      console.log('Sending request to analyze-text function');
 
       // Call the actual OpenAI edge function
       const { data, error } = await supabase.functions.invoke('analyze-text', {
