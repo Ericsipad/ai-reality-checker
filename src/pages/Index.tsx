@@ -73,7 +73,7 @@ const Index = () => {
             IsThisRealOrAI
           </h1>
           <p className="text-xl text-white/80 mb-6">
-            Using 27 paid AI detection APIs to confidently determine the authenticity of your content
+            We run your content through 27 expert AI tools — and give you one easy verdict.
           </p>
           <div className="flex justify-center space-x-4">
             <Button
