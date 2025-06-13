@@ -153,7 +153,7 @@ const Index = () => {
         {/* Footer */}
         <div className="text-center mt-16">
           <p className="text-white/60 text-sm">
-            A Vobius Labs Product
+            © 2025 A Vobius Labs Product
           </p>
         </div>
       </div>
