@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -159,31 +160,33 @@ const Index = () => {
             We run your content through 27 expert AI tools — and give you one easy verdict.
           </p>
           {!loading && (
-            <div className="flex justify-center space-x-4">
-              <Button
-                onClick={() => setShowUsageModal(true)}
-                variant="outline"
-                className="bg-white/10 border-white/30 text-white hover:bg-white/20"
-              >
-                <Eye className="h-4 w-4 mr-2" />
-                {remainingChecks} Free Checks left • No signup required
-              </Button>
-              {user && (
+            <div className="flex flex-col items-center space-y-4">
+              <div className="flex justify-center space-x-4">
                 <Button
-                  onClick={handleBuyMoreChecks}
-                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
+                  onClick={() => setShowUsageModal(true)}
+                  variant="outline"
+                  className="bg-white/10 border-white/30 text-white hover:bg-white/20"
                 >
-                  <CreditCard className="h-4 w-4 mr-2" />
-                  Buy More Checks
+                  <Eye className="h-4 w-4 mr-2" />
+                  {remainingChecks} Free Checks left • No signup required
                 </Button>
-              )}
-              {!user && remainingChecks === 0 && (
+                {user && (
+                  <Button
+                    onClick={handleBuyMoreChecks}
+                    className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
+                  >
+                    <CreditCard className="h-4 w-4 mr-2" />
+                    Buy More Checks
+                  </Button>
+                )}
+              </div>
+              {!user && (
                 <Button
                   asChild
                   className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
                 >
                   <Link to="/auth">
-                    Sign Up for More Checks
+                    Sign up for more checks & features
                   </Link>
                 </Button>
               )}
