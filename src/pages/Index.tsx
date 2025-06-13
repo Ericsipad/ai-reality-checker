@@ -10,6 +10,7 @@ import PricingModal from '@/components/PricingModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSupabaseUsageTracking } from '@/hooks/useSupabaseUsageTracking';
 import { useIPUsageTracking } from '@/hooks/useIPUsageTracking';
+import { supabase } from '@/integrations/supabase/client';
 import { Eye, FileText, Image as ImageIcon, LogIn, UserPlus, CreditCard, LogOut } from 'lucide-react';
 
 const Index = () => {
