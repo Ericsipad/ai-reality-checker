@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -28,6 +28,18 @@ const UploadBox: React.FC<UploadBoxProps> = ({
   const [isComplete, setIsComplete] = useState(false);
   const [textInput, setTextInput] = useState('');
 
+  // Reset state after completion
+  useEffect(() => {
+    if (isComplete) {
+      const timer = setTimeout(() => {
+        setProgress(0);
+        setIsComplete(false);
+      }, 2000); // Reset after 2 seconds
+      
+      return () => clearTimeout(timer);
+    }
+  }, [isComplete]);
+
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     if (disabled) return;
     
@@ -54,8 +66,13 @@ const UploadBox: React.FC<UploadBoxProps> = ({
       setIsComplete(true);
     } catch (error) {
       console.error('Upload error:', error);
+      // Reset on error
+      setProgress(0);
+      setIsComplete(false);
     } finally {
       clearInterval(progressInterval);
+      // Clear the file input
+      event.target.value = '';
     }
   };
 
@@ -80,9 +97,12 @@ const UploadBox: React.FC<UploadBoxProps> = ({
       await onUpload(textInput);
       setProgress(100);
       setIsComplete(true);
-      setTextInput('');
+      setTextInput(''); // Clear text input immediately after successful submission
     } catch (error) {
       console.error('Text analysis error:', error);
+      // Reset on error
+      setProgress(0);
+      setIsComplete(false);
     } finally {
       clearInterval(progressInterval);
     }
