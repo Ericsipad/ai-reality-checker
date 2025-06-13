@@ -1,7 +1,7 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+import { Link } from 'react-router-dom';
 import UploadBox from '@/components/UploadBox';
 import UsageModal from '@/components/UsageModal';
 import ResultModal from '@/components/ResultModal';
@@ -65,20 +65,6 @@ const Index = () => {
     });
   };
 
-  const handleSignIn = () => {
-    toast({
-      title: "Sign In",
-      description: "Sign in functionality will be implemented soon!",
-    });
-  };
-
-  const handleSignUp = () => {
-    toast({
-      title: "Sign Up",
-      description: "Sign up functionality will be implemented soon!",
-    });
-  };
-
   return (
     <div className="min-h-screen gradient-bg">
       <div className="container mx-auto px-4 py-8">
@@ -86,19 +72,23 @@ const Index = () => {
         <div className="flex justify-end mb-8">
           <div className="flex space-x-2">
             <Button
-              onClick={handleSignIn}
+              asChild
               variant="outline"
               className="bg-white/10 border-white/30 text-white hover:bg-white/20"
             >
-              <LogIn className="h-4 w-4 mr-2" />
-              Sign In
+              <Link to="/signin">
+                <LogIn className="h-4 w-4 mr-2" />
+                Sign In
+              </Link>
             </Button>
             <Button
-              onClick={handleSignUp}
+              asChild
               className="bg-white text-purple-600 hover:bg-white/90"
             >
-              <UserPlus className="h-4 w-4 mr-2" />
-              Sign Up
+              <Link to="/signup">
+                <UserPlus className="h-4 w-4 mr-2" />
+                Sign Up
+              </Link>
             </Button>
           </div>
         </div>
