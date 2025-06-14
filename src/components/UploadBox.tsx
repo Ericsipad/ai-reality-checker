@@ -41,10 +41,27 @@ const UploadBox: React.FC<UploadBoxProps> = ({
   }, [isComplete]);
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (disabled) return;
+    console.log('UploadBox: handleFileUpload called for', title);
+    console.log('UploadBox: disabled status:', disabled);
+    
+    if (disabled) {
+      console.log('UploadBox: Upload disabled, returning early');
+      return;
+    }
     
     const file = event.target.files?.[0];
-    if (!file) return;
+    console.log('UploadBox: Selected file:', file);
+    
+    if (!file) {
+      console.log('UploadBox: No file selected');
+      return;
+    }
+
+    console.log('UploadBox: File details:', {
+      name: file.name,
+      type: file.type,
+      size: file.size
+    });
 
     setProgress(0);
     setIsComplete(false);
@@ -61,11 +78,13 @@ const UploadBox: React.FC<UploadBoxProps> = ({
     }, 300);
 
     try {
+      console.log('UploadBox: Calling onUpload with file');
       await onUpload(file);
+      console.log('UploadBox: onUpload completed successfully');
       setProgress(100);
       setIsComplete(true);
     } catch (error) {
-      console.error('Upload error:', error);
+      console.error('UploadBox: Upload error:', error);
       // Reset on error
       setProgress(0);
       setIsComplete(false);
@@ -73,11 +92,19 @@ const UploadBox: React.FC<UploadBoxProps> = ({
       clearInterval(progressInterval);
       // Clear the file input
       event.target.value = '';
+      console.log('UploadBox: Cleared file input');
     }
   };
 
   const handleTextSubmit = async () => {
-    if (!textInput.trim() || disabled) return;
+    console.log('UploadBox: handleTextSubmit called');
+    console.log('UploadBox: textInput:', textInput);
+    console.log('UploadBox: disabled status:', disabled);
+    
+    if (!textInput.trim() || disabled) {
+      console.log('UploadBox: Text submit cancelled - empty input or disabled');
+      return;
+    }
 
     setProgress(0);
     setIsComplete(false);
@@ -94,12 +121,14 @@ const UploadBox: React.FC<UploadBoxProps> = ({
     }, 300);
 
     try {
+      console.log('UploadBox: Calling onUpload with text');
       await onUpload(textInput);
+      console.log('UploadBox: Text analysis completed successfully');
       setProgress(100);
       setIsComplete(true);
       setTextInput(''); // Clear text input immediately after successful submission
     } catch (error) {
-      console.error('Text analysis error:', error);
+      console.error('UploadBox: Text analysis error:', error);
       // Reset on error
       setProgress(0);
       setIsComplete(false);
@@ -110,6 +139,8 @@ const UploadBox: React.FC<UploadBoxProps> = ({
 
   const isTextBox = title === 'Text';
   const showProgress = isAnalyzing || progress > 0;
+
+  console.log('UploadBox: Rendering', title, 'box with disabled:', disabled);
 
   return (
     <Card className={`glass-effect p-6 upload-hover border-white/20 ${disabled ? 'opacity-50' : ''}`}>
@@ -175,8 +206,13 @@ const UploadBox: React.FC<UploadBoxProps> = ({
             />
             <Button 
               onClick={() => {
+                console.log('UploadBox: Button clicked for', title);
+                console.log('UploadBox: disabled status:', disabled);
                 if (!disabled) {
+                  console.log('UploadBox: Triggering file input click');
                   document.getElementById(`file-upload-${title.toLowerCase()}`)?.click();
+                } else {
+                  console.log('UploadBox: Button click ignored - disabled');
                 }
               }}
               className="w-full bg-white/20 hover:bg-white/30 text-white border border-white/30 disabled:opacity-50"
