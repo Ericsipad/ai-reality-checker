@@ -63,7 +63,8 @@ const Index = () => {
         } else {
           console.log('Reading text file');
           // Handle text file
-          requestBody.text = await content.text();
+          const textContent = await content.text();
+          requestBody.text = textContent;
         }
       }
 
