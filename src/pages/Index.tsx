@@ -29,6 +29,21 @@ const Index = () => {
   
   const { toast } = useToast();
 
+  const convertFileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (typeof reader.result === 'string') {
+          resolve(reader.result);
+        } else {
+          reject(new Error('Failed to convert file to base64'));
+        }
+      };
+      reader.onerror = () => reject(new Error('Failed to read file'));
+      reader.readAsDataURL(file);
+    });
+  };
+
   const handleUpload = async (content: File | string) => {
     console.log('handleUpload called with:', typeof content === 'string' ? 'text content' : 'file:', content);
     
@@ -55,11 +70,16 @@ const Index = () => {
         console.log('Processing file content, type:', content.type);
         // Handle file type - text or image
         if (content.type.startsWith('image/')) {
-          console.log('Converting image to base64');
-          // Convert image to base64
-          const arrayBuffer = await content.arrayBuffer();
-          const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
-          requestBody.image = `data:${content.type};base64,${base64}`;
+          console.log('Converting image to base64 using FileReader');
+          // Use FileReader for safer base64 conversion
+          try {
+            const base64Data = await convertFileToBase64(content);
+            requestBody.image = base64Data;
+            console.log('Image conversion successful, size:', base64Data.length);
+          } catch (conversionError) {
+            console.error('Image conversion failed:', conversionError);
+            throw new Error('Failed to process image file');
+          }
         } else {
           console.log('Reading text file');
           // Handle text file
