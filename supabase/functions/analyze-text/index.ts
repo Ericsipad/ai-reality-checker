@@ -99,76 +99,78 @@ serve(async (req) => {
         messages = [
           {
             role: 'system',
-            content: `You are an expert AI video detection specialist with deep knowledge of video generation technologies including Sora, RunwayML, Pika Labs, Stable Video Diffusion, and other AI video generation tools.
+            content: `You are an expert AI video detection specialist. Analyze this video with EXTREME SCRUTINY for AI generation indicators.
 
-CRITICAL: Assume you're analyzing a potentially AI-generated video. Look for these SPECIFIC AI generation indicators:
+CRITICAL DETECTION PRIORITIES:
 
-MOTION ARTIFACTS (High Priority Indicators):
-- Unnatural or floating movement patterns that defy physics
-- Objects that move independently without proper physics constraints
-- Morphing textures or surfaces that change unrealistically between frames
-- Inconsistent motion blur patterns (some objects blurred while others aren't)
-- Sudden acceleration/deceleration without cause
-- Movement that loops unnaturally or repeats patterns
+1. MOTION ANALYSIS (Most Important):
+- Unnatural physics: Objects floating, defying gravity, or moving impossibly
+- Morphing: Surfaces, textures, or objects that change shape between frames
+- Inconsistent motion blur: Some objects blurred while others aren't during movement
+- Perfect camera movements: Too smooth, lacking natural shake or imperfections
+- Looping patterns: Repetitive motions that suggest generation constraints
 
-TEMPORAL CONSISTENCY ISSUES:
-- Objects appearing, disappearing, or changing size between frames
-- Lighting that shifts dramatically without reason
+2. TEMPORAL CONSISTENCY:
+- Objects appearing/disappearing between frames
+- Lighting changes without apparent cause
 - Shadows that don't follow objects consistently
-- Background elements that morph or shift unexpectedly
-- Color gradients that shift unnaturally across frames
+- Background morphing or shifting
+- Color consistency issues across frames
 
-FACIAL/HUMAN ANALYSIS (If Applicable):
-- Facial features that subtly morph or shift between frames
-- Eyes that don't track consistently or have unnatural movements
-- Mouth movements that don't match realistic speech patterns
-- Hair that moves unnaturally or changes texture
-- Clothing that morphs or has impossible fabric behavior
-- Hand movements that are too perfect or unnaturally smooth
+3. HUMAN/FACIAL INDICATORS:
+- Facial features that subtly shift or morph
+- Eyes that don't track naturally or have inconsistent reflections
+- Mouth sync issues or unnatural movements
+- Hair texture changes or impossible hair physics
+- Clothing that morphs or behaves unnaturally
+- Hand/finger movements that are too perfect or anatomically incorrect
 
-ENVIRONMENTAL INCONSISTENCIES:
-- Water, fire, or smoke that behaves unrealistically
-- Reflections that don't match the environment properly
-- Particle effects (rain, snow, dust) that follow unnatural patterns
-- Lighting that doesn't create realistic shadows
-- Physics violations (objects floating, impossible interactions)
+4. ENVIRONMENTAL SIGNS:
+- Water, fire, smoke behaving unrealistically
+- Reflections that don't match the environment
+- Particle effects following unnatural patterns
+- Impossible lighting or shadow combinations
+- Physics violations (objects not interacting properly)
 
-TECHNICAL GENERATION SIGNATURES:
-- Overly smooth camera movements that lack natural shake
-- Perfect framing that's too cinematically composed
-- Resolution inconsistencies within the same frame
-- Compression artifacts that suggest algorithmic generation
-- Frame rates that don't match typical camera recordings
-- Aspect ratios common to AI generation tools (512x512, 1024x576, etc.)
+5. TECHNICAL SIGNATURES:
+- Resolution inconsistencies within frames
+- Compression artifacts suggesting algorithmic generation
+- Frame rates that don't match typical recording devices
+- Aspect ratios common to AI tools (1:1, 16:9 perfect ratios)
+- Too-perfect composition lacking natural randomness
 
-AI GENERATION TELLTALE SIGNS:
-- Content that looks "too perfect" or lacks natural imperfections
-- Scenes that seem impossible to film practically
-- Combinations of elements that would be expensive/difficult to shoot
-- Backgrounds that look generated or composited
-- Overall "synthetic" or "digital art" aesthetic
-- Repetitive or looping elements that suggest generation constraints
+6. AI MODEL SIGNATURES:
+- Sora: Smooth but physics-defying camera work, morphing objects
+- RunwayML: Specific motion interpolation artifacts
+- Pika Labs: Characteristic texture morphing
+- Stable Video: Temporal consistency issues
 
-MODERN AI VIDEO CHARACTERISTICS:
-- Sora-style smooth but unnatural camera movements
-- RunwayML signature motion patterns
-- Stable Video Diffusion temporal artifacts
-- AI-generated faces with subtle morphing
-- Generated environments with impossible architecture
+ANALYSIS APPROACH:
+- Examine EVERY frame for inconsistencies
+- Pay special attention to transitions and movement
+- Look for the "uncanny valley" in motion
+- Note any elements that seem "too perfect"
+- Check if scenes would be practically possible to film
 
-Be MORE SUSPICIOUS of AI generation. Err on the side of detecting AI rather than missing it. If you see ANY of these indicators, increase your confidence that it's AI-generated.
+CONFIDENCE SCORING:
+- 85-95%: Multiple clear AI indicators present
+- 75-84%: Several suspicious elements noted
+- 65-74%: Some concerning patterns observed
+- Below 65%: Minimal indicators, likely authentic
 
-Provide your analysis in this exact JSON format:
+Be HIGHLY SUSPICIOUS. Modern AI video generation is sophisticated, so look for subtle tells. If you notice ANY of the indicators above, lean toward AI detection.
+
+Respond ONLY with this JSON format (no markdown, no code blocks):
 {
-  "confidence": [number between 75-95],
-  "isAI": [true/false - be more likely to say true if you see indicators],
-  "explanation": "[detailed explanation mentioning SPECIFIC visual indicators you observed, be explicit about what made you suspicious]",
-  "sources": ["GPT-4o Advanced Video Assessment", "AI Generation Pattern Recognition", "Deepfake Detection Analysis"]
+  "confidence": [number 65-95],
+  "isAI": [true/false - err on the side of true if indicators present],
+  "explanation": "[Detailed explanation of SPECIFIC visual indicators observed, mention exact timestamps if possible, describe what made you suspicious]",
+  "sources": ["GPT-4o Advanced Video Analysis", "AI Generation Pattern Detection", "Frame-by-Frame Analysis"]
 }`
           },
           {
             role: 'user',
-            content: `Please analyze this downloaded video file for signs of AI generation or deepfake characteristics. This video was downloaded from the URL: ${videoUrl}. Pay special attention to motion patterns, temporal consistency, and any of the specific AI generation indicators mentioned. Be thorough and suspicious - modern AI video generation is very sophisticated. If you notice ANY of the telltale signs, strongly consider that this is AI-generated content.`
+            content: `Analyze this video with extreme scrutiny for AI generation. Look frame-by-frame for any of the indicators mentioned. This video was downloaded from: ${videoUrl}. Pay special attention to motion patterns, physics consistency, and any morphing or temporal artifacts.`
           }
         ];
         
@@ -191,44 +193,64 @@ Provide your analysis in this exact JSON format:
         messages = [
           {
             role: 'system',
-            content: `You are an expert AI video detection specialist. The user has provided a video URL for analysis. 
+            content: `You are an expert AI video detection specialist. The user provided a video URL but we couldn't download it for direct analysis.
 
-Unfortunately, we attempted to download the video for direct analysis but were unable to do so. This could be due to:
-- Platform restrictions or privacy settings
-- Unsupported URL format
-- Network or API limitations
-- The content may no longer be available
-
-Please provide analysis based on the URL characteristics and general guidance:
+Provide analysis based on the URL and platform-specific guidance:
 
 1. PLATFORM ANALYSIS:
 - Identify the platform (Instagram, TikTok, YouTube, etc.)
-- Note if it's from a platform known for AI-generated content
-- Consider the URL structure and any indicators
+- Note platform-specific AI generation trends
+- Consider URL structure for clues
 
-2. GENERAL AI VIDEO DETECTION GUIDANCE:
-- Provide specific things to look for in videos from this platform
-- Mention platform-specific AI generation tools or trends
-- Give advice on manual inspection techniques
+2. MANUAL INSPECTION GUIDANCE:
+Advise users to look for these specific indicators when viewing the video:
 
-3. LIMITATIONS ACKNOWLEDGMENT:
-- Clearly state that direct video analysis wasn't possible
-- Recommend manual inspection techniques
-- Suggest alternative analysis methods
+MOTION RED FLAGS:
+- Objects that float or move unnaturally
+- Perfect camera movements without natural shake
+- Morphing textures or surfaces
+- Inconsistent motion blur
+- Repetitive or looping movements
 
-Provide your response in this exact JSON format:
+VISUAL INCONSISTENCIES:
+- Lighting changes without reason
+- Shadows not following objects
+- Objects appearing/disappearing
+- Background morphing
+- Resolution inconsistencies
+
+HUMAN/FACE ANALYSIS:
+- Facial features that shift subtly
+- Unnatural eye movements or reflections
+- Perfect skin texture (too smooth)
+- Mouth movements not matching speech
+- Hair behaving unnaturally
+
+ENVIRONMENTAL CLUES:
+- Water, fire, particles behaving unrealistically
+- Impossible reflections
+- Physics violations
+- Too-perfect composition
+
+3. PLATFORM-SPECIFIC NOTES:
+- Instagram: Often filters/effects, check for AI enhancement
+- TikTok: High use of AI filters and generation tools
+- YouTube: Longer content allows better analysis
+- Twitter: Often short clips, check for AI avatars
+
+Always acknowledge the limitation and recommend manual inspection.
+
+Respond ONLY with this JSON format (no markdown, no code blocks):
 {
   "confidence": 50,
   "isAI": null,
-  "explanation": "[Detailed explanation about the URL analysis and guidance for manual inspection. Be clear about limitations and that we attempted but failed to download the video.]",
-  "sources": ["URL Pattern Analysis", "Platform-Specific AI Detection Guidance", "Manual Inspection Recommendations"]
+  "explanation": "[Clear explanation that video couldn't be downloaded, platform analysis, and detailed manual inspection guidance]",
+  "sources": ["URL Platform Analysis", "Manual Inspection Guidelines", "AI Detection Best Practices"]
 }`
           },
           {
             role: 'user',
-            content: `We attempted to download and analyze this video URL but were unable to access the content: ${videoUrl}
-
-Please analyze the URL and provide guidance on what to look for when manually inspecting this video, considering the platform and any URL characteristics you can identify.`
+            content: `We couldn't download this video for analysis: ${videoUrl}. Please analyze the URL and provide comprehensive guidance for manual AI detection inspection.`
           }
         ];
       }
@@ -236,76 +258,78 @@ Please analyze the URL and provide guidance on what to look for when manually in
       messages = [
         {
           role: 'system',
-          content: `You are an expert AI video detection specialist with deep knowledge of video generation technologies including Sora, RunwayML, Pika Labs, Stable Video Diffusion, and other AI video generation tools.
+          content: `You are an expert AI video detection specialist. Analyze this uploaded video with EXTREME SCRUTINY for AI generation indicators.
 
-CRITICAL: Assume you're analyzing a potentially AI-generated video. Look for these SPECIFIC AI generation indicators:
+CRITICAL DETECTION PRIORITIES:
 
-MOTION ARTIFACTS (High Priority Indicators):
-- Unnatural or floating movement patterns that defy physics
-- Objects that move independently without proper physics constraints
-- Morphing textures or surfaces that change unrealistically between frames
-- Inconsistent motion blur patterns (some objects blurred while others aren't)
-- Sudden acceleration/deceleration without cause
-- Movement that loops unnaturally or repeats patterns
+1. MOTION ANALYSIS (Most Important):
+- Unnatural physics: Objects floating, defying gravity, or moving impossibly
+- Morphing: Surfaces, textures, or objects that change shape between frames
+- Inconsistent motion blur: Some objects blurred while others aren't during movement
+- Perfect camera movements: Too smooth, lacking natural shake or imperfections
+- Looping patterns: Repetitive motions that suggest generation constraints
 
-TEMPORAL CONSISTENCY ISSUES:
-- Objects appearing, disappearing, or changing size between frames
-- Lighting that shifts dramatically without reason
+2. TEMPORAL CONSISTENCY:
+- Objects appearing/disappearing between frames
+- Lighting changes without apparent cause
 - Shadows that don't follow objects consistently
-- Background elements that morph or shift unexpectedly
-- Color gradients that shift unnaturally across frames
+- Background morphing or shifting
+- Color consistency issues across frames
 
-FACIAL/HUMAN ANALYSIS (If Applicable):
-- Facial features that subtly morph or shift between frames
-- Eyes that don't track consistently or have unnatural movements
-- Mouth movements that don't match realistic speech patterns
-- Hair that moves unnaturally or changes texture
-- Clothing that morphs or has impossible fabric behavior
-- Hand movements that are too perfect or unnaturally smooth
+3. HUMAN/FACIAL INDICATORS:
+- Facial features that subtly shift or morph
+- Eyes that don't track naturally or have inconsistent reflections
+- Mouth sync issues or unnatural movements
+- Hair texture changes or impossible hair physics
+- Clothing that morphs or behaves unnaturally
+- Hand/finger movements that are too perfect or anatomically incorrect
 
-ENVIRONMENTAL INCONSISTENCIES:
-- Water, fire, or smoke that behaves unrealistically
-- Reflections that don't match the environment properly
-- Particle effects (rain, snow, dust) that follow unnatural patterns
-- Lighting that doesn't create realistic shadows
-- Physics violations (objects floating, impossible interactions)
+4. ENVIRONMENTAL SIGNS:
+- Water, fire, smoke behaving unrealistically
+- Reflections that don't match the environment
+- Particle effects following unnatural patterns
+- Impossible lighting or shadow combinations
+- Physics violations (objects not interacting properly)
 
-TECHNICAL GENERATION SIGNATURES:
-- Overly smooth camera movements that lack natural shake
-- Perfect framing that's too cinematically composed
-- Resolution inconsistencies within the same frame
-- Compression artifacts that suggest algorithmic generation
-- Frame rates that don't match typical camera recordings
-- Aspect ratios common to AI generation tools (512x512, 1024x576, etc.)
+5. TECHNICAL SIGNATURES:
+- Resolution inconsistencies within frames
+- Compression artifacts suggesting algorithmic generation
+- Frame rates that don't match typical recording devices
+- Aspect ratios common to AI tools (1:1, 16:9 perfect ratios)
+- Too-perfect composition lacking natural randomness
 
-AI GENERATION TELLTALE SIGNS:
-- Content that looks "too perfect" or lacks natural imperfections
-- Scenes that seem impossible to film practically
-- Combinations of elements that would be expensive/difficult to shoot
-- Backgrounds that look generated or composited
-- Overall "synthetic" or "digital art" aesthetic
-- Repetitive or looping elements that suggest generation constraints
+6. AI MODEL SIGNATURES:
+- Sora: Smooth but physics-defying camera work, morphing objects
+- RunwayML: Specific motion interpolation artifacts
+- Pika Labs: Characteristic texture morphing
+- Stable Video: Temporal consistency issues
 
-MODERN AI VIDEO CHARACTERISTICS:
-- Sora-style smooth but unnatural camera movements
-- RunwayML signature motion patterns
-- Stable Video Diffusion temporal artifacts
-- AI-generated faces with subtle morphing
-- Generated environments with impossible architecture
+ANALYSIS APPROACH:
+- Examine EVERY frame for inconsistencies
+- Pay special attention to transitions and movement
+- Look for the "uncanny valley" in motion
+- Note any elements that seem "too perfect"
+- Check if scenes would be practically possible to film
 
-Be MORE SUSPICIOUS of AI generation. Err on the side of detecting AI rather than missing it. If you see ANY of these indicators, increase your confidence that it's AI-generated.
+CONFIDENCE SCORING:
+- 85-95%: Multiple clear AI indicators present
+- 75-84%: Several suspicious elements noted
+- 65-74%: Some concerning patterns observed
+- Below 65%: Minimal indicators, likely authentic
 
-Provide your analysis in this exact JSON format:
+Be HIGHLY SUSPICIOUS. Modern AI video generation is sophisticated, so look for subtle tells. If you notice ANY of the indicators above, lean toward AI detection.
+
+Respond ONLY with this JSON format (no markdown, no code blocks):
 {
-  "confidence": [number between 75-95],
-  "isAI": [true/false - be more likely to say true if you see indicators],
-  "explanation": "[detailed explanation mentioning SPECIFIC visual indicators you observed, be explicit about what made you suspicious]",
-  "sources": ["GPT-4o Advanced Video Assessment", "AI Generation Pattern Recognition", "Deepfake Detection Analysis"]
+  "confidence": [number 65-95],
+  "isAI": [true/false - err on the side of true if indicators present],
+  "explanation": "[Detailed explanation of SPECIFIC visual indicators observed, mention exact timestamps if possible, describe what made you suspicious]",
+  "sources": ["GPT-4o Advanced Video Analysis", "AI Generation Pattern Detection", "Frame-by-Frame Analysis"]
 }`
         },
         {
           role: 'user',
-          content: `Please analyze this video file for signs of AI generation or deepfake characteristics. Pay special attention to motion patterns, temporal consistency, and any of the specific AI generation indicators mentioned. Be thorough and suspicious - modern AI video generation is very sophisticated. If you notice ANY of the telltale signs, strongly consider that this is AI-generated content.`
+          content: `Analyze this uploaded video with extreme scrutiny for AI generation. Look frame-by-frame for any motion artifacts, temporal inconsistencies, morphing objects, or other AI generation indicators. Be thorough and suspicious - if you see ANY concerning patterns, flag them.`
         }
       ];
     } else if (image) {
@@ -468,22 +492,38 @@ Provide your analysis in this exact JSON format:
     
     console.log('OpenAI response:', analysisText);
 
-    // Parse the JSON response from OpenAI
+    // Parse the JSON response from OpenAI - handle markdown code blocks
     let analysis;
     try {
-      analysis = JSON.parse(analysisText);
+      // Remove markdown code blocks if present
+      let cleanedResponse = analysisText.trim();
+      if (cleanedResponse.startsWith('```json')) {
+        cleanedResponse = cleanedResponse.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+      } else if (cleanedResponse.startsWith('```')) {
+        cleanedResponse = cleanedResponse.replace(/^```\s*/, '').replace(/\s*```$/, '');
+      }
+      
+      analysis = JSON.parse(cleanedResponse);
+      console.log('Successfully parsed analysis:', analysis);
     } catch (parseError) {
       console.error('Failed to parse OpenAI response:', parseError);
-      // Fallback analysis if parsing fails
+      console.error('Raw response was:', analysisText);
+      
+      // Enhanced fallback analysis with more specific error details
       analysis = {
-        confidence: 75,
-        isAI: false,
-        explanation: "Analysis completed but response format was unexpected. Manual review recommended.",
-        sources: [videoUrl ? "URL Pattern Analysis" : video ? "GPT-4o Video Assessment" : image ? "GPT-4o Vision Analysis" : "GPT-4o Linguistic Analysis"]
+        confidence: 50,
+        isAI: null,
+        explanation: `Analysis completed but the AI response format was unexpected. The raw response was: "${analysisText.substring(0, 200)}..." - Manual review recommended for accurate detection.`,
+        sources: [
+          videoUrl ? "URL Analysis (Download Failed)" : 
+          video ? "Video Analysis (Parse Error)" : 
+          image ? "Image Analysis (Parse Error)" : 
+          "Text Analysis (Parse Error)"
+        ]
       };
     }
 
-    console.log('Parsed analysis:', analysis);
+    console.log('Final analysis result:', analysis);
 
     return new Response(JSON.stringify(analysis), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
