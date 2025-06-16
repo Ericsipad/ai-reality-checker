@@ -10,7 +10,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useSupabaseUsageTracking } from '@/hooks/useSupabaseUsageTracking';
 import { useIPUsageTracking } from '@/hooks/useIPUsageTracking';
 import { supabase } from '@/integrations/supabase/client';
-import { Eye, FileText, Image as ImageIcon, LogIn, UserPlus, CreditCard, LogOut } from 'lucide-react';
+import { Eye, FileText, Image as ImageIcon, LogIn, UserPlus, CreditCard, LogOut, Video } from 'lucide-react';
 
 const Index = () => {
   const [showUsageModal, setShowUsageModal] = useState(false);
@@ -60,7 +60,7 @@ const Index = () => {
     }
 
     try {
-      let requestBody: { text?: string; image?: string } = {};
+      let requestBody: { text?: string; image?: string; video?: string } = {};
       
       // Handle file upload vs direct text
       if (typeof content === 'string') {
@@ -68,10 +68,9 @@ const Index = () => {
         requestBody.text = content;
       } else {
         console.log('Processing file content, type:', content.type);
-        // Handle file type - text or image
+        // Handle file type - text, image, or video
         if (content.type.startsWith('image/')) {
           console.log('Converting image to base64 using FileReader');
-          // Use FileReader for safer base64 conversion
           try {
             const base64Data = await convertFileToBase64(content);
             requestBody.image = base64Data;
@@ -79,6 +78,16 @@ const Index = () => {
           } catch (conversionError) {
             console.error('Image conversion failed:', conversionError);
             throw new Error('Failed to process image file');
+          }
+        } else if (content.type.startsWith('video/')) {
+          console.log('Converting video to base64 using FileReader');
+          try {
+            const base64Data = await convertFileToBase64(content);
+            requestBody.video = base64Data;
+            console.log('Video conversion successful, size:', base64Data.length);
+          } catch (conversionError) {
+            console.error('Video conversion failed:', conversionError);
+            throw new Error('Failed to process video file');
           }
         } else {
           console.log('Reading text file');
@@ -254,9 +263,9 @@ const Index = () => {
           <UploadBox
             title="Video"
             description="Identify deepfakes and AI-generated videos"
-            icon={<Eye className="h-12 w-12 text-white" />}
-            acceptedTypes="video/*"
-            disabled={true}
+            icon={<Video className="h-12 w-12 text-white" />}
+            acceptedTypes="video/mp4,video/avi,video/mov,video/wmv,video/flv,video/webm,video/mkv"
+            disabled={false}
             onUpload={handleUpload}
           />
         </div>
