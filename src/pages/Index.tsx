@@ -178,40 +178,46 @@ const Index = () => {
 
   return (
     <div className="min-h-screen gradient-bg">
-      <div className="container mx-auto px-4 py-8">
-        {/* Top Navigation */}
-        <div className="flex justify-end mb-8">
-          <div className="flex space-x-2">
+      <div className="container mx-auto px-4 py-6 sm:py-8">
+        {/* Top Navigation - Mobile Optimized */}
+        <div className="flex justify-end mb-6 sm:mb-8">
+          <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
             {user ? (
-              <div className="flex items-center space-x-2">
-                <span className="text-white/80 text-sm">
+              <div className="flex flex-col sm:flex-row items-center space-y-2 sm:space-y-0 sm:space-x-2">
+                <span className="text-white/80 text-sm text-center sm:text-left">
                   Welcome back!
                 </span>
-                {(subscribed || subscription_tier === 'pay-per-use') && (
+                <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
+                  {(subscribed || subscription_tier === 'pay-per-use') && (
+                    <Button
+                      onClick={openCustomerPortal}
+                      variant="outline"
+                      className="bg-white/10 border-white/30 text-white hover:bg-white/20 text-sm"
+                      size="sm"
+                    >
+                      <CreditCard className="h-4 w-4 mr-2" />
+                      <span className="hidden sm:inline">Manage Subscription</span>
+                      <span className="sm:hidden">Manage</span>
+                    </Button>
+                  )}
                   <Button
-                    onClick={openCustomerPortal}
+                    onClick={handleSignOut}
                     variant="outline"
-                    className="bg-white/10 border-white/30 text-white hover:bg-white/20"
+                    className="bg-white/10 border-white/30 text-white hover:bg-white/20 text-sm"
+                    size="sm"
                   >
-                    <CreditCard className="h-4 w-4 mr-2" />
-                    Manage Subscription
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Sign Out
                   </Button>
-                )}
-                <Button
-                  onClick={handleSignOut}
-                  variant="outline"
-                  className="bg-white/10 border-white/30 text-white hover:bg-white/20"
-                >
-                  <LogOut className="h-4 w-4 mr-2" />
-                  Sign Out
-                </Button>
+                </div>
               </div>
             ) : (
-              <>
+              <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
                 <Button
                   asChild
                   variant="outline"
-                  className="bg-white/10 border-white/30 text-white hover:bg-white/20"
+                  className="bg-white/10 border-white/30 text-white hover:bg-white/20 text-sm"
+                  size="sm"
                 >
                   <Link to="/auth">
                     <LogIn className="h-4 w-4 mr-2" />
@@ -220,41 +226,44 @@ const Index = () => {
                 </Button>
                 <Button
                   asChild
-                  className="bg-white text-purple-600 hover:bg-white/90"
+                  className="bg-white text-purple-600 hover:bg-white/90 text-sm"
+                  size="sm"
                 >
                   <Link to="/auth">
                     <UserPlus className="h-4 w-4 mr-2" />
                     Sign Up
                   </Link>
                 </Button>
-              </>
+              </div>
             )}
           </div>
         </div>
 
-        {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-5xl font-bold text-white mb-4">
+        {/* Header - Mobile Optimized */}
+        <div className="text-center mb-8 sm:mb-12">
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-4">
             Is This Real Or AI?
           </h1>
-          <p className="text-xl text-white/80 mb-6">
+          <p className="text-lg sm:text-xl text-white/80 mb-6 px-2">
             We run your content through 27 expert AI tools — and give you one simple answer.
           </p>
           {!loading && (
             <div className="flex flex-col items-center space-y-4">
-              <div className="flex justify-center space-x-4">
+              <div className="flex flex-col sm:flex-row justify-center space-y-2 sm:space-y-0 sm:space-x-4">
                 <Button
                   onClick={() => setShowUsageModal(true)}
                   variant="outline"
-                  className="bg-white/10 border-white/30 text-white hover:bg-white/20"
+                  className="bg-white/10 border-white/30 text-white hover:bg-white/20 text-sm"
+                  size="sm"
                 >
                   <Eye className="h-4 w-4 mr-2" />
-                  {getUsageText()}
+                  <span className="text-center">{getUsageText()}</span>
                 </Button>
                 {user && !subscribed && (
                   <Button
                     onClick={handleBuyMoreChecks}
-                    className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
+                    className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white text-sm"
+                    size="sm"
                   >
                     <CreditCard className="h-4 w-4 mr-2" />
                     Buy More Checks
@@ -264,7 +273,8 @@ const Index = () => {
               {!user && (
                 <Button
                   asChild
-                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
+                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white text-sm"
+                  size="sm"
                 >
                   <Link to="/auth">
                     Sign up for more checks & features
@@ -275,12 +285,12 @@ const Index = () => {
           )}
         </div>
 
-        {/* Upload Boxes */}
-        <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+        {/* Upload Boxes - Mobile Optimized */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 max-w-6xl mx-auto px-2 sm:px-0">
           <UploadBox
             title="Text"
             description="Analyze written content for AI generation patterns"
-            icon={<FileText className="h-12 w-12 text-white" />}
+            icon={<FileText className="h-10 w-10 sm:h-12 sm:w-12 text-white" />}
             acceptedTypes="text/*"
             onUpload={handleUpload}
           />
@@ -288,7 +298,7 @@ const Index = () => {
           <UploadBox
             title="Image"
             description="Detect AI-generated or manipulated images"
-            icon={<ImageIcon className="h-12 w-12 text-white" />}
+            icon={<ImageIcon className="h-10 w-10 sm:h-12 sm:w-12 text-white" />}
             acceptedTypes="image/png,image/jpeg,image/jpg,image/gif,image/webp,image/bmp,image/tiff"
             disabled={false}
             onUpload={handleUpload}
@@ -297,7 +307,7 @@ const Index = () => {
           <UploadBox
             title="Video"
             description="Identify deepfakes and AI-generated videos"
-            icon={<Video className="h-12 w-12 text-white" />}
+            icon={<Video className="h-10 w-10 sm:h-12 sm:w-12 text-white" />}
             acceptedTypes="video/mp4,video/avi,video/mov,video/wmv,video/flv,video/webm,video/mkv"
             disabled={false}
             onUpload={handleUpload}
@@ -305,7 +315,7 @@ const Index = () => {
         </div>
 
         {/* Footer */}
-        <div className="text-center mt-16">
+        <div className="text-center mt-12 sm:mt-16">
           <p className="text-white/60 text-sm">
             © 2025 A Vobius Labs Product
           </p>
