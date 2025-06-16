@@ -104,6 +104,14 @@ export const useStripeSubscription = () => {
       const { data, error } = await supabase.functions.invoke('customer-portal');
 
       if (error) {
+        if (error.message?.includes("not configured")) {
+          toast({
+            title: "Customer Portal Setup Required",
+            description: "The billing portal is being set up. Please contact support for subscription management.",
+            variant: "destructive",
+          });
+          return;
+        }
         throw new Error(error.message);
       }
 
