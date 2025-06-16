@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -239,7 +238,7 @@ const Index = () => {
             Is This Real Or AI?
           </h1>
           <p className="text-xl text-white/80 mb-6">
-            We run your content through 27 expert AI tools — and give you one easy verdict.
+            We run your content through 27 expert AI tools — and give you one simple answer.
           </p>
           {!loading && (
             <div className="flex flex-col items-center space-y-4">
