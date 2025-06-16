@@ -341,6 +341,9 @@ const Index = () => {
           <p className="text-white/60 text-sm">
             © 2025 A Vobius Labs Product
           </p>
+          <p className="text-white/50 text-xs mt-1">
+            Labs@vobius.com
+          </p>
         </div>
       </div>
 
