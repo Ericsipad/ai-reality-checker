@@ -8,6 +8,7 @@ import ResultModal from '@/components/ResultModal';
 import PricingModal from '@/components/PricingModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { useStripeSubscription } from '@/hooks/useStripeSubscription';
+import { useIPUsageTracking } from '@/hooks/useIPUsageTracking';
 import { supabase } from '@/integrations/supabase/client';
 import { Eye, FileText, Image as ImageIcon, LogIn, UserPlus, CreditCard, LogOut, Video } from 'lucide-react';
 
@@ -18,18 +19,39 @@ const Index = () => {
   const [analysisResult, setAnalysisResult] = useState(null);
   const { user, signOut } = useAuth();
   
-  // Use Stripe subscription tracking
+  // Use Stripe subscription tracking for authenticated users
   const { 
     subscribed, 
     subscription_tier, 
-    remaining_checks, 
-    useCheck, 
-    loading,
+    remaining_checks: authRemainingChecks, 
+    useCheck: useAuthCheck, 
+    loading: authLoading,
     createCheckout,
     openCustomerPortal 
   } = useStripeSubscription();
+
+  // Use IP-based tracking for non-authenticated users
+  const {
+    remainingChecks: ipRemainingChecks,
+    totalChecks: ipTotalChecks,
+    useCheck: useIPCheck,
+    loading: ipLoading
+  } = useIPUsageTracking();
   
   const { toast } = useToast();
+
+  // Determine which tracking system to use
+  const loading = user ? authLoading : ipLoading;
+  const remaining_checks = user ? authRemainingChecks : ipRemainingChecks;
+  const totalChecks = user ? (subscribed ? Infinity : authRemainingChecks + 5) : ipTotalChecks;
+
+  const useCheck = (): boolean => {
+    if (user) {
+      return useAuthCheck();
+    } else {
+      return useIPCheck();
+    }
+  };
 
   const convertFileToBase64 = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -165,11 +187,11 @@ const Index = () => {
   };
 
   const getUsageText = () => {
-    if (subscribed) {
+    if (user && subscribed) {
       return `Unlimited checks • ${subscription_tier} plan`;
     }
     
-    if (subscription_tier === 'pay-per-use') {
+    if (user && subscription_tier === 'pay-per-use') {
       return `${remaining_checks} checks remaining • Pay-per-use`;
     }
     
@@ -327,7 +349,7 @@ const Index = () => {
         isOpen={showUsageModal}
         onClose={() => setShowUsageModal(false)}
         remainingChecks={remaining_checks}
-        totalChecks={subscribed ? Infinity : remaining_checks + 5}
+        totalChecks={totalChecks}
         onUpgrade={user ? handleUpgrade : () => {}}
       />
       

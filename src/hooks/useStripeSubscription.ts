@@ -16,7 +16,7 @@ export const useStripeSubscription = () => {
     subscribed: false,
     subscription_tier: null,
     subscription_end: null,
-    remaining_checks: 5 // Default free checks for non-authenticated users
+    remaining_checks: 0
   });
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
@@ -26,12 +26,12 @@ export const useStripeSubscription = () => {
     if (user) {
       checkSubscription();
     } else {
-      // For non-authenticated users, provide default free checks
+      // For non-authenticated users, don't set any subscription data
       setSubscriptionData({
         subscribed: false,
         subscription_tier: null,
         subscription_end: null,
-        remaining_checks: 5
+        remaining_checks: 0
       });
       setLoading(false);
     }
@@ -128,18 +128,8 @@ export const useStripeSubscription = () => {
   };
 
   const useCheck = (): boolean => {
-    if (!user) {
-      // For non-authenticated users, use IP-based tracking
-      const remaining = subscriptionData.remaining_checks;
-      if (remaining <= 0) return false;
-
-      setSubscriptionData(prev => ({
-        ...prev,
-        remaining_checks: Math.max(0, prev.remaining_checks - 1)
-      }));
-      
-      return true;
-    }
+    // Only handle authenticated users here
+    if (!user) return false;
 
     // Unlimited for active subscriptions
     if (subscriptionData.subscribed) return true;
