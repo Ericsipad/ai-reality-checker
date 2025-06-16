@@ -317,8 +317,8 @@ const Index = () => {
       <UsageModal
         isOpen={showUsageModal}
         onClose={() => setShowUsageModal(false)}
-        remainingChecks={typeof remaining_checks === 'number' ? remaining_checks : 0}
-        totalChecks={subscribed ? Infinity : (typeof remaining_checks === 'number' ? remaining_checks : 5)}
+        remainingChecks={remaining_checks}
+        totalChecks={subscribed ? Infinity : remaining_checks + 5}
         onUpgrade={user ? handleUpgrade : () => {}}
       />
       

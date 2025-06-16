@@ -8,7 +8,7 @@ interface SubscriptionData {
   subscribed: boolean;
   subscription_tier: string | null;
   subscription_end: string | null;
-  remaining_checks: number | string;
+  remaining_checks: number;
 }
 
 export const useStripeSubscription = () => {
@@ -16,7 +16,7 @@ export const useStripeSubscription = () => {
     subscribed: false,
     subscription_tier: null,
     subscription_end: null,
-    remaining_checks: 0
+    remaining_checks: 5 // Default free checks for non-authenticated users
   });
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
@@ -26,6 +26,13 @@ export const useStripeSubscription = () => {
     if (user) {
       checkSubscription();
     } else {
+      // For non-authenticated users, provide default free checks
+      setSubscriptionData({
+        subscribed: false,
+        subscription_tier: null,
+        subscription_end: null,
+        remaining_checks: 5
+      });
       setLoading(false);
     }
   }, [user]);
@@ -41,7 +48,17 @@ export const useStripeSubscription = () => {
         return;
       }
 
-      setSubscriptionData(data);
+      // Ensure remaining_checks is always a number
+      const remainingChecks = typeof data.remaining_checks === 'number' 
+        ? data.remaining_checks 
+        : 0;
+
+      setSubscriptionData({
+        subscribed: data.subscribed || false,
+        subscription_tier: data.subscription_tier || null,
+        subscription_end: data.subscription_end || null,
+        remaining_checks: remainingChecks
+      });
     } catch (error) {
       console.error('Error in checkSubscription:', error);
     } finally {
@@ -103,22 +120,30 @@ export const useStripeSubscription = () => {
   };
 
   const useCheck = (): boolean => {
-    if (!user) return false;
+    if (!user) {
+      // For non-authenticated users, use IP-based tracking
+      const remaining = subscriptionData.remaining_checks;
+      if (remaining <= 0) return false;
+
+      setSubscriptionData(prev => ({
+        ...prev,
+        remaining_checks: Math.max(0, prev.remaining_checks - 1)
+      }));
+      
+      return true;
+    }
 
     // Unlimited for active subscriptions
     if (subscriptionData.subscribed) return true;
 
     // Check remaining pay-per-use checks
-    const remaining = typeof subscriptionData.remaining_checks === 'number' 
-      ? subscriptionData.remaining_checks 
-      : 0;
-
+    const remaining = subscriptionData.remaining_checks;
     if (remaining <= 0) return false;
 
     // Update remaining checks optimistically
     setSubscriptionData(prev => ({
       ...prev,
-      remaining_checks: Math.max(0, (typeof prev.remaining_checks === 'number' ? prev.remaining_checks : 0) - 1)
+      remaining_checks: Math.max(0, prev.remaining_checks - 1)
     }));
 
     // Update database
@@ -134,7 +159,7 @@ export const useStripeSubscription = () => {
       const { error } = await supabase
         .from('subscribers')
         .update({
-          remaining_checks: Math.max(0, (typeof subscriptionData.remaining_checks === 'number' ? subscriptionData.remaining_checks : 0) - 1)
+          remaining_checks: Math.max(0, subscriptionData.remaining_checks - 1)
         })
         .eq('user_id', user.id);
 
@@ -143,7 +168,7 @@ export const useStripeSubscription = () => {
         // Revert optimistic update on error
         setSubscriptionData(prev => ({
           ...prev,
-          remaining_checks: (typeof prev.remaining_checks === 'number' ? prev.remaining_checks : 0) + 1
+          remaining_checks: prev.remaining_checks + 1
         }));
       }
     } catch (error) {
