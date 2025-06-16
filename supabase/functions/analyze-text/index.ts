@@ -86,11 +86,12 @@ serve(async (req) => {
     console.log('Analyzing content with OpenAI...');
 
     let messages;
+    let downloadedVideo = null;
     
     if (videoUrl) {
       // Try to download the video first
       console.log('Attempting to download video from URL:', videoUrl);
-      const downloadedVideo = await downloadVideoFromUrl(videoUrl);
+      downloadedVideo = await downloadVideoFromUrl(videoUrl);
       
       if (downloadedVideo) {
         // If download successful, analyze the actual video content
@@ -308,7 +309,6 @@ Provide your analysis in this exact JSON format:
         }
       ];
     } else if (image) {
-      // Enhanced image analysis prompt
       messages = [
         {
           role: 'system',
@@ -377,7 +377,6 @@ Provide your analysis in this exact JSON format:
         }
       ];
     } else {
-      // Enhanced text analysis prompt
       messages = [
         {
           role: 'system',
@@ -442,6 +441,17 @@ Provide your analysis in this exact JSON format:
         max_tokens: 1000
       }),
     });
+
+    // Clean up downloaded video immediately after OpenAI analysis
+    if (downloadedVideo) {
+      console.log('Cleaning up downloaded video data from memory...');
+      downloadedVideo = null; // Clear the base64 data from memory
+      // Force garbage collection if available
+      if (typeof globalThis.gc === 'function') {
+        globalThis.gc();
+      }
+      console.log('Video data cleaned up successfully');
+    }
 
     if (!response.ok) {
       console.error('OpenAI API error:', response.status, response.statusText);
