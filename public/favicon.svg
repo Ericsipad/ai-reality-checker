@@ -1,0 +1,25 @@
+
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1e3a8a;stop-opacity:1" />
+      <stop offset="25%" style="stop-color:#3730a3;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#6366f1;stop-opacity:1" />
+      <stop offset="75%" style="stop-color:#8b5cf6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#a855f7;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background with gradient -->
+  <rect width="32" height="32" rx="6" fill="url(#bg)" />
+  
+  <!-- AI Eye symbol -->
+  <circle cx="16" cy="14" r="6" stroke="white" stroke-width="1.5" fill="none" />
+  <circle cx="16" cy="14" r="2.5" fill="white" />
+  <circle cx="16" cy="14" r="1" fill="url(#bg)" />
+  
+  <!-- Scanning lines -->
+  <line x1="8" y1="24" x2="24" y2="24" stroke="white" stroke-width="1" opacity="0.8" />
+  <line x1="10" y1="26" x2="22" y2="26" stroke="white" stroke-width="1" opacity="0.6" />
+  <line x1="12" y1="28" x2="20" y2="28" stroke="white" stroke-width="1" opacity="0.4" />
+</svg>
