@@ -241,7 +241,7 @@ const Index = () => {
                   className="bg-white/10 border-white/30 text-white hover:bg-white/20 text-sm"
                   size="sm"
                 >
-                  <Link to="/auth">
+                  <Link to="/auth?mode=signin">
                     <LogIn className="h-4 w-4 mr-2" />
                     Sign In
                   </Link>
@@ -251,7 +251,7 @@ const Index = () => {
                   className="bg-white text-purple-600 hover:bg-white/90 text-sm"
                   size="sm"
                 >
-                  <Link to="/auth">
+                  <Link to="/auth?mode=signup">
                     <UserPlus className="h-4 w-4 mr-2" />
                     Sign Up
                   </Link>
@@ -298,7 +298,7 @@ const Index = () => {
                   className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white text-sm"
                   size="sm"
                 >
-                  <Link to="/auth">
+                  <Link to="/auth?mode=signup">
                     Sign up for more checks & features
                   </Link>
                 </Button>
