@@ -1,9 +1,9 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { CheckCircle, Upload, Loader2 } from 'lucide-react';
+import { CheckCircle, Upload, Loader2, Link } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 
 interface UploadBoxProps {
   title: string;
@@ -27,6 +27,7 @@ const UploadBox: React.FC<UploadBoxProps> = ({
   const [progress, setProgress] = useState(0);
   const [isComplete, setIsComplete] = useState(false);
   const [textInput, setTextInput] = useState('');
+  const [videoUrl, setVideoUrl] = useState('');
 
   // Reset state after completion
   useEffect(() => {
@@ -137,7 +138,50 @@ const UploadBox: React.FC<UploadBoxProps> = ({
     }
   };
 
+  const handleVideoUrlSubmit = async () => {
+    console.log('UploadBox: handleVideoUrlSubmit called');
+    console.log('UploadBox: videoUrl:', videoUrl);
+    console.log('UploadBox: disabled status:', disabled);
+    
+    if (!videoUrl.trim() || disabled) {
+      console.log('UploadBox: Video URL submit cancelled - empty input or disabled');
+      return;
+    }
+
+    setProgress(0);
+    setIsComplete(false);
+
+    // Simulate progress during analysis
+    const progressInterval = setInterval(() => {
+      setProgress(prev => {
+        if (prev >= 90) {
+          clearInterval(progressInterval);
+          return 90;
+        }
+        return prev + 10;
+      });
+    }, 300);
+
+    try {
+      console.log('UploadBox: Calling onUpload with video URL');
+      // Pass the URL as a special marker for the parent to handle
+      await onUpload(`VIDEO_URL:${videoUrl}`);
+      console.log('UploadBox: Video URL analysis completed successfully');
+      setProgress(100);
+      setIsComplete(true);
+      setVideoUrl(''); // Clear URL input after successful submission
+    } catch (error) {
+      console.error('UploadBox: Video URL analysis error:', error);
+      // Reset on error
+      setProgress(0);
+      setIsComplete(false);
+    } finally {
+      clearInterval(progressInterval);
+    }
+  };
+
   const isTextBox = title === 'Text';
+  const isVideoBox = title === 'Video';
   const showProgress = isAnalyzing || progress > 0;
 
   console.log('UploadBox: Rendering', title, 'box with disabled:', disabled);
@@ -193,6 +237,55 @@ const UploadBox: React.FC<UploadBoxProps> = ({
               <Upload className="h-4 w-4 mr-2" />
               {disabled ? 'Coming Soon' : 'Analyze Text'}
             </Button>
+          </div>
+        ) : isVideoBox ? (
+          <div className="space-y-4">
+            <input
+              type="file"
+              accept={acceptedTypes}
+              onChange={handleFileUpload}
+              className="hidden"
+              id={`file-upload-${title.toLowerCase()}`}
+              disabled={disabled}
+            />
+            <Button 
+              onClick={() => {
+                console.log('UploadBox: Button clicked for', title);
+                console.log('UploadBox: disabled status:', disabled);
+                if (!disabled) {
+                  console.log('UploadBox: Triggering file input click');
+                  document.getElementById(`file-upload-${title.toLowerCase()}`)?.click();
+                } else {
+                  console.log('UploadBox: Button click ignored - disabled');
+                }
+              }}
+              className="w-full bg-white/20 hover:bg-white/30 text-white border border-white/30 disabled:opacity-50"
+              disabled={disabled}
+              type="button"
+            >
+              <Upload className="h-4 w-4 mr-2" />
+              {disabled ? 'Coming Soon' : `Upload ${title}`}
+            </Button>
+            
+            <div className="text-white/60 text-xs">or</div>
+            
+            <div className="space-y-2">
+              <Input
+                value={videoUrl}
+                onChange={(e) => setVideoUrl(e.target.value)}
+                placeholder="Paste video URL here..."
+                className="bg-white/10 text-white placeholder:text-white/50 border-white/20"
+                disabled={disabled}
+              />
+              <Button 
+                onClick={handleVideoUrlSubmit}
+                disabled={!videoUrl.trim() || disabled}
+                className="w-full bg-white/20 hover:bg-white/30 text-white border border-white/30 disabled:opacity-50"
+              >
+                <Link className="h-4 w-4 mr-2" />
+                {disabled ? 'Coming Soon' : 'Analyze Video URL'}
+              </Button>
+            </div>
           </div>
         ) : (
           <div className="space-y-4">

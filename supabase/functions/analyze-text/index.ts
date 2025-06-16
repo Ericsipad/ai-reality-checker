@@ -1,4 +1,3 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
@@ -16,10 +15,10 @@ serve(async (req) => {
   }
 
   try {
-    const { text, image, video } = await req.json();
+    const { text, image, video, videoUrl } = await req.json();
 
-    if (!text && !image && !video) {
-      return new Response(JSON.stringify({ error: 'Text, image, or video is required' }), {
+    if (!text && !image && !video && !videoUrl) {
+      return new Response(JSON.stringify({ error: 'Text, image, video, or video URL is required' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -29,7 +28,48 @@ serve(async (req) => {
 
     let messages;
     
-    if (video) {
+    if (videoUrl) {
+      // Handle video URL analysis - we'll analyze the URL and provide guidance
+      messages = [
+        {
+          role: 'system',
+          content: `You are an expert AI video detection specialist. The user has provided a video URL for analysis. 
+
+IMPORTANT: You cannot directly access or download the video content from the URL due to technical limitations, but you can provide analysis based on the URL characteristics and general guidance.
+
+Analyze the provided URL and provide insights based on:
+
+1. PLATFORM ANALYSIS:
+- Identify the platform (Instagram, TikTok, YouTube, etc.)
+- Note if it's from a platform known for AI-generated content
+- Consider the URL structure and any indicators
+
+2. GENERAL AI VIDEO DETECTION GUIDANCE:
+- Provide specific things to look for in videos from this platform
+- Mention platform-specific AI generation tools or trends
+- Give advice on manual inspection techniques
+
+3. LIMITATIONS ACKNOWLEDGMENT:
+- Clearly state that direct video analysis isn't possible
+- Recommend manual inspection techniques
+- Suggest alternative analysis methods
+
+Provide your response in this exact JSON format:
+{
+  "confidence": 50,
+  "isAI": null,
+  "explanation": "[Detailed explanation about the URL analysis and guidance for manual inspection. Be clear about limitations.]",
+  "sources": ["URL Pattern Analysis", "Platform-Specific AI Detection Guidance", "Manual Inspection Recommendations"]
+}`
+        },
+        {
+          role: 'user',
+          content: `Please analyze this video URL for potential AI generation indicators: ${videoUrl}
+
+Provide guidance on what to look for when manually inspecting this video, considering the platform and any URL characteristics you can identify.`
+        }
+      ];
+    } else if (video) {
       messages = [
         {
           role: 'system',
@@ -267,7 +307,7 @@ Provide your analysis in this exact JSON format:
         confidence: 75,
         isAI: false,
         explanation: "Analysis completed but response format was unexpected. Manual review recommended.",
-        sources: [video ? "GPT-4o Video Assessment" : image ? "GPT-4o Vision Analysis" : "GPT-4o Linguistic Analysis"]
+        sources: [videoUrl ? "URL Pattern Analysis" : video ? "GPT-4o Video Assessment" : image ? "GPT-4o Vision Analysis" : "GPT-4o Linguistic Analysis"]
       };
     }
 

@@ -45,7 +45,7 @@ const Index = () => {
   };
 
   const handleUpload = async (content: File | string) => {
-    console.log('handleUpload called with:', typeof content === 'string' ? 'text content' : 'file:', content);
+    console.log('handleUpload called with:', typeof content === 'string' ? 'text/url content' : 'file:', content);
     
     if (!useCheck()) {
       toast({
@@ -60,12 +60,20 @@ const Index = () => {
     }
 
     try {
-      let requestBody: { text?: string; image?: string; video?: string } = {};
+      let requestBody: { text?: string; image?: string; video?: string; videoUrl?: string } = {};
       
-      // Handle file upload vs direct text
+      // Handle file upload vs direct text vs video URL
       if (typeof content === 'string') {
-        console.log('Processing text content');
-        requestBody.text = content;
+        if (content.startsWith('VIDEO_URL:')) {
+          // Handle video URL
+          const videoUrl = content.replace('VIDEO_URL:', '');
+          console.log('Processing video URL:', videoUrl);
+          requestBody.videoUrl = videoUrl;
+        } else {
+          // Handle regular text content
+          console.log('Processing text content');
+          requestBody.text = content;
+        }
       } else {
         console.log('Processing file content, type:', content.type);
         // Handle file type - text, image, or video
