@@ -106,6 +106,7 @@ export type Database = {
         Row: {
           checks_used: number
           created_at: string
+          email: string | null
           id: string
           last_reset: string
           total_checks: number
@@ -114,6 +115,7 @@ export type Database = {
         Insert: {
           checks_used?: number
           created_at?: string
+          email?: string | null
           id?: string
           last_reset?: string
           total_checks?: number
@@ -122,6 +124,7 @@ export type Database = {
         Update: {
           checks_used?: number
           created_at?: string
+          email?: string | null
           id?: string
           last_reset?: string
           total_checks?: number

@@ -50,11 +50,37 @@ export const useSupabaseUsageTracking = () => {
           setTotalChecks(data.total_checks);
           setRemainingChecks(Math.max(0, data.total_checks - data.checks_used));
         }
+      } else {
+        // If no usage record exists, create one (fallback for existing users)
+        await createUsageRecord();
       }
     } catch (error) {
       console.error('Error in fetchUsageData:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const createUsageRecord = async () => {
+    if (!user) return;
+
+    try {
+      const { error } = await supabase
+        .from('user_usage')
+        .insert({
+          user_id: user.id,
+          email: user.email,
+          checks_used: 0,
+          total_checks: 5,
+          last_reset: new Date().toISOString()
+        });
+
+      if (!error) {
+        setTotalChecks(5);
+        setRemainingChecks(5);
+      }
+    } catch (error) {
+      console.error('Error creating usage record:', error);
     }
   };
 
