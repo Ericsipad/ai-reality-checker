@@ -8,63 +8,133 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-async function downloadVideoFromUrl(videoUrl: string): Promise<string | null> {
-  try {
-    console.log('Attempting to download video from URL:', videoUrl);
-    
-    const response = await fetch('https://api.cobalt.tools/api/json', {
-      method: 'POST',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        url: videoUrl,
-        vCodec: 'h264',
-        vQuality: '720',
-        aFormat: 'mp3',
-        filenamePattern: 'classic',
-        isAudioOnly: false,
-        isTTFullAudio: false,
-        isAudioMuted: false,
-        dubLang: false,
-        disableMetadata: false
-      }),
-    });
+async function tryMultipleDownloadMethods(videoUrl: string): Promise<string | null> {
+  const downloadMethods = [
+    // Method 1: Cobalt API
+    async () => {
+      console.log('Trying Cobalt API...');
+      const response = await fetch('https://api.cobalt.tools/api/json', {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          url: videoUrl,
+          vCodec: 'h264',
+          vQuality: '480', // Lower quality for faster processing
+          aFormat: 'mp3',
+          filenamePattern: 'classic',
+          isAudioOnly: false,
+          isTTFullAudio: false,
+          isAudioMuted: false,
+          dubLang: false,
+          disableMetadata: false
+        }),
+      });
 
-    if (!response.ok) {
-      console.error('Cobalt API error:', response.status, response.statusText);
-      return null;
-    }
-
-    const data = await response.json();
-    console.log('Cobalt API response:', data);
-
-    if (data.status === 'success' || data.status === 'redirect') {
-      const downloadUrl = data.url;
-      console.log('Got download URL:', downloadUrl);
-      
-      // Download the actual video file and convert to base64
-      const videoResponse = await fetch(downloadUrl);
-      if (!videoResponse.ok) {
-        console.error('Failed to download video file:', videoResponse.status);
-        return null;
+      if (!response.ok) {
+        throw new Error(`Cobalt API error: ${response.status}`);
       }
 
-      const videoBuffer = await videoResponse.arrayBuffer();
-      const videoBase64 = btoa(String.fromCharCode(...new Uint8Array(videoBuffer)));
-      const mimeType = videoResponse.headers.get('content-type') || 'video/mp4';
-      
-      console.log('Video downloaded successfully, size:', videoBuffer.byteLength, 'bytes');
-      return `data:${mimeType};base64,${videoBase64}`;
-    } else {
-      console.error('Cobalt API returned error:', data);
-      return null;
+      const data = await response.json();
+      console.log('Cobalt API response:', data);
+
+      if (data.status === 'success' || data.status === 'redirect') {
+        const downloadUrl = data.url;
+        const videoResponse = await fetch(downloadUrl);
+        if (!videoResponse.ok) {
+          throw new Error(`Failed to download video: ${videoResponse.status}`);
+        }
+
+        const videoBuffer = await videoResponse.arrayBuffer();
+        const videoBase64 = btoa(String.fromCharCode(...new Uint8Array(videoBuffer)));
+        const mimeType = videoResponse.headers.get('content-type') || 'video/mp4';
+        
+        console.log('Cobalt download successful, size:', videoBuffer.byteLength, 'bytes');
+        return `data:${mimeType};base64,${videoBase64}`;
+      }
+      throw new Error('Cobalt API returned non-success status');
+    },
+
+    // Method 2: yt-dlp API (alternative service)
+    async () => {
+      console.log('Trying yt-dlp API...');
+      const response = await fetch('https://api.ytdl.org/api/v1/extract', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          url: videoUrl,
+          format: 'mp4',
+          quality: '480p'
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`yt-dlp API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      if (data.success && data.download_url) {
+        const videoResponse = await fetch(data.download_url);
+        if (!videoResponse.ok) {
+          throw new Error(`Failed to download video: ${videoResponse.status}`);
+        }
+
+        const videoBuffer = await videoResponse.arrayBuffer();
+        const videoBase64 = btoa(String.fromCharCode(...new Uint8Array(videoBuffer)));
+        const mimeType = videoResponse.headers.get('content-type') || 'video/mp4';
+        
+        console.log('yt-dlp download successful, size:', videoBuffer.byteLength, 'bytes');
+        return `data:${mimeType};base64,${videoBase64}`;
+      }
+      throw new Error('yt-dlp API returned no download URL');
+    },
+
+    // Method 3: Direct URL attempt (for direct video links)
+    async () => {
+      console.log('Trying direct URL download...');
+      // Check if URL looks like a direct video file
+      if (videoUrl.match(/\.(mp4|avi|mov|wmv|flv|webm|mkv)(\?.*)?$/i)) {
+        const videoResponse = await fetch(videoUrl, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+          }
+        });
+        
+        if (!videoResponse.ok) {
+          throw new Error(`Direct download failed: ${videoResponse.status}`);
+        }
+
+        const videoBuffer = await videoResponse.arrayBuffer();
+        const videoBase64 = btoa(String.fromCharCode(...new Uint8Array(videoBuffer)));
+        const mimeType = videoResponse.headers.get('content-type') || 'video/mp4';
+        
+        console.log('Direct download successful, size:', videoBuffer.byteLength, 'bytes');
+        return `data:${mimeType};base64,${videoBase64}`;
+      }
+      throw new Error('URL does not appear to be a direct video file');
     }
-  } catch (error) {
-    console.error('Error downloading video:', error);
-    return null;
+  ];
+
+  // Try each method in sequence
+  for (let i = 0; i < downloadMethods.length; i++) {
+    try {
+      const result = await downloadMethods[i]();
+      if (result) {
+        console.log(`Video download successful using method ${i + 1}`);
+        return result;
+      }
+    } catch (error) {
+      console.log(`Download method ${i + 1} failed:`, error.message);
+      // Continue to next method
+    }
   }
+
+  console.log('All download methods failed');
+  return null;
 }
 
 serve(async (req) => {
@@ -89,9 +159,9 @@ serve(async (req) => {
     let downloadedVideo = null;
     
     if (videoUrl) {
-      // Try to download the video first
+      // Try to download the video using multiple methods
       console.log('Attempting to download video from URL:', videoUrl);
-      downloadedVideo = await downloadVideoFromUrl(videoUrl);
+      downloadedVideo = await tryMultipleDownloadMethods(videoUrl);
       
       if (downloadedVideo) {
         // If download successful, analyze the actual video content
@@ -170,87 +240,81 @@ Respond ONLY with this JSON format (no markdown, no code blocks):
           },
           {
             role: 'user',
-            content: `Analyze this video with extreme scrutiny for AI generation. Look frame-by-frame for any of the indicators mentioned. This video was downloaded from: ${videoUrl}. Pay special attention to motion patterns, physics consistency, and any morphing or temporal artifacts.`
+            content: [
+              {
+                type: 'text',
+                text: `Analyze this video with extreme scrutiny for AI generation. Look frame-by-frame for any of the indicators mentioned. This video was downloaded from: ${videoUrl}. Pay special attention to motion patterns, physics consistency, and any morphing or temporal artifacts.`
+              },
+              {
+                type: 'video',
+                video: downloadedVideo
+              }
+            ]
           }
         ];
-        
-        // Add the video to the message
-        if (messages[1].content && typeof messages[1].content === 'string') {
-          messages[1].content = [
-            {
-              type: 'text',
-              text: messages[1].content
-            },
-            {
-              type: 'video',
-              video: downloadedVideo
-            }
-          ];
-        }
       } else {
-        // If download failed, fall back to URL analysis
-        console.log('Video download failed, falling back to URL analysis...');
+        // If all download methods failed, provide enhanced guidance
+        console.log('All video download methods failed, providing enhanced guidance...');
         messages = [
           {
             role: 'system',
-            content: `You are an expert AI video detection specialist. The user provided a video URL but we couldn't download it for direct analysis.
+            content: `You are an expert AI video detection specialist. The user provided a video URL but all download methods failed (tried Cobalt API, yt-dlp, and direct download).
 
-Provide analysis based on the URL and platform-specific guidance:
+DOWNLOAD FAILURE ANALYSIS:
+- URL: ${videoUrl}
+- Platform restrictions likely prevent automated downloading
+- This is common with Instagram, TikTok, Twitter, and other social platforms
+- The platform may have anti-bot measures in place
 
-1. PLATFORM ANALYSIS:
-- Identify the platform (Instagram, TikTok, YouTube, etc.)
-- Note platform-specific AI generation trends
-- Consider URL structure for clues
+ENHANCED MANUAL INSPECTION GUIDANCE:
+Since we cannot analyze the video directly, provide comprehensive guidance for manual inspection:
 
-2. MANUAL INSPECTION GUIDANCE:
-Advise users to look for these specific indicators when viewing the video:
+1. PLATFORM-SPECIFIC CONSIDERATIONS:
+${videoUrl.includes('instagram') ? `
+- Instagram: Known for heavy use of filters and AR effects
+- Check for beauty filters that smooth skin unnaturally
+- Look for background replacement or virtual backgrounds
+- Many Instagram videos use AI-enhanced features
+` : ''}
+${videoUrl.includes('tiktok') ? `
+- TikTok: Extremely high use of AI filters and effects
+- Very common platform for AI-generated content
+- Check for face swapping, voice cloning, or deepfakes
+- Look for AI avatars or virtual influencers
+` : ''}
+${videoUrl.includes('youtube') ? `
+- YouTube: Mixed content, longer videos allow better analysis
+- Check video description for AI disclosure
+- Look for consistent lighting and audio quality
+- Examine for jump cuts that might hide AI processing
+` : ''}
 
-MOTION RED FLAGS:
-- Objects that float or move unnaturally
-- Perfect camera movements without natural shake
-- Morphing textures or surfaces
-- Inconsistent motion blur
-- Repetitive or looping movements
+2. CRITICAL INSPECTION POINTS:
+- Download the video locally if possible for better analysis
+- Watch at different speeds (0.25x, 0.5x, 2x)
+- Look for frame-by-frame inconsistencies
+- Check audio-visual sync carefully
+- Examine shadows and reflections in detail
 
-VISUAL INCONSISTENCIES:
-- Lighting changes without reason
-- Shadows not following objects
-- Objects appearing/disappearing
-- Background morphing
-- Resolution inconsistencies
-
-HUMAN/FACE ANALYSIS:
-- Facial features that shift subtly
+3. RED FLAGS FOR AI GENERATION:
+- Perfect skin with no pores or natural texture
 - Unnatural eye movements or reflections
-- Perfect skin texture (too smooth)
-- Mouth movements not matching speech
-- Hair behaving unnaturally
-
-ENVIRONMENTAL CLUES:
-- Water, fire, particles behaving unrealistically
-- Impossible reflections
-- Physics violations
-- Too-perfect composition
-
-3. PLATFORM-SPECIFIC NOTES:
-- Instagram: Often filters/effects, check for AI enhancement
-- TikTok: High use of AI filters and generation tools
-- YouTube: Longer content allows better analysis
-- Twitter: Often short clips, check for AI avatars
-
-Always acknowledge the limitation and recommend manual inspection.
+- Mouth movements that don't quite match speech
+- Inconsistent lighting between subject and background
+- Objects that morph or change shape between frames
+- Too-perfect camera work without natural shake
 
 Respond ONLY with this JSON format (no markdown, no code blocks):
 {
-  "confidence": 50,
+  "confidence": 30,
   "isAI": null,
-  "explanation": "[Clear explanation that video couldn't be downloaded, platform analysis, and detailed manual inspection guidance]",
-  "sources": ["URL Platform Analysis", "Manual Inspection Guidelines", "AI Detection Best Practices"]
+  "explanation": "[Detailed explanation that video couldn't be downloaded despite trying multiple methods, platform-specific analysis, and comprehensive manual inspection guidance with specific focus on the detected platform]",
+  "sources": ["Multi-Method Download Attempt", "Platform-Specific Analysis", "Enhanced Manual Inspection Guidelines"]
 }`
           },
           {
             role: 'user',
-            content: `We couldn't download this video for analysis: ${videoUrl}. Please analyze the URL and provide comprehensive guidance for manual AI detection inspection.`
+            content: `We tried multiple download methods (Cobalt API, yt-dlp, direct download) but couldn't download this video: ${videoUrl}. This is likely due to platform anti-bot measures. Please provide enhanced platform-specific analysis and detailed manual inspection guidance.`
           }
         ];
       }
@@ -515,7 +579,7 @@ Provide your analysis in this exact JSON format:
         isAI: null,
         explanation: `Analysis completed but the AI response format was unexpected. The raw response was: "${analysisText.substring(0, 200)}..." - Manual review recommended for accurate detection.`,
         sources: [
-          videoUrl ? "URL Analysis (Download Failed)" : 
+          videoUrl ? "Multi-Method Download Attempt" : 
           video ? "Video Analysis (Parse Error)" : 
           image ? "Image Analysis (Parse Error)" : 
           "Text Analysis (Parse Error)"
