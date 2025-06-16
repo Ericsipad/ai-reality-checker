@@ -13,12 +13,12 @@ import { Check, CreditCard } from 'lucide-react';
 interface PricingModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onPurchase?: (plan: string) => void;
 }
 
-const PricingModal: React.FC<PricingModalProps> = ({ isOpen, onClose }) => {
+const PricingModal: React.FC<PricingModalProps> = ({ isOpen, onClose, onPurchase }) => {
   const handlePurchase = (plan: string) => {
-    // Placeholder for purchase logic
-    console.log(`Purchasing ${plan} plan`);
+    onPurchase?.(plan);
     onClose();
   };
 

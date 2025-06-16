@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -7,8 +8,7 @@ import UsageModal from '@/components/UsageModal';
 import ResultModal from '@/components/ResultModal';
 import PricingModal from '@/components/PricingModal';
 import { useAuth } from '@/contexts/AuthContext';
-import { useSupabaseUsageTracking } from '@/hooks/useSupabaseUsageTracking';
-import { useIPUsageTracking } from '@/hooks/useIPUsageTracking';
+import { useStripeSubscription } from '@/hooks/useStripeSubscription';
 import { supabase } from '@/integrations/supabase/client';
 import { Eye, FileText, Image as ImageIcon, LogIn, UserPlus, CreditCard, LogOut, Video } from 'lucide-react';
 
@@ -19,13 +19,16 @@ const Index = () => {
   const [analysisResult, setAnalysisResult] = useState(null);
   const { user, signOut } = useAuth();
   
-  // Use different tracking hooks based on auth status
-  const authenticatedTracking = useSupabaseUsageTracking();
-  const anonymousTracking = useIPUsageTracking();
-  
-  // Choose the appropriate tracking system
-  const tracking = user ? authenticatedTracking : anonymousTracking;
-  const { remainingChecks, totalChecks, useCheck, loading } = tracking;
+  // Use Stripe subscription tracking
+  const { 
+    subscribed, 
+    subscription_tier, 
+    remaining_checks, 
+    useCheck, 
+    loading,
+    createCheckout,
+    openCustomerPortal 
+  } = useStripeSubscription();
   
   const { toast } = useToast();
 
@@ -51,7 +54,9 @@ const Index = () => {
       toast({
         title: "No checks remaining",
         description: user 
-          ? "You've used all your free checks this week. Upgrade to continue!"
+          ? subscribed 
+            ? "Something went wrong with your subscription. Please contact support."
+            : "You've used all your checks. Purchase more to continue!"
           : "You've used all your free checks this week. Sign up for more!",
         variant: "destructive",
       });
@@ -160,6 +165,18 @@ const Index = () => {
     }
   };
 
+  const getUsageText = () => {
+    if (subscribed) {
+      return `Unlimited checks • ${subscription_tier} plan`;
+    }
+    
+    if (subscription_tier === 'pay-per-use') {
+      return `${remaining_checks} checks remaining • Pay-per-use`;
+    }
+    
+    return `${remaining_checks} Free Checks left • No signup required`;
+  };
+
   return (
     <div className="min-h-screen gradient-bg">
       <div className="container mx-auto px-4 py-8">
@@ -171,6 +188,16 @@ const Index = () => {
                 <span className="text-white/80 text-sm">
                   Welcome back!
                 </span>
+                {(subscribed || subscription_tier === 'pay-per-use') && (
+                  <Button
+                    onClick={openCustomerPortal}
+                    variant="outline"
+                    className="bg-white/10 border-white/30 text-white hover:bg-white/20"
+                  >
+                    <CreditCard className="h-4 w-4 mr-2" />
+                    Manage Subscription
+                  </Button>
+                )}
                 <Button
                   onClick={handleSignOut}
                   variant="outline"
@@ -223,9 +250,9 @@ const Index = () => {
                   className="bg-white/10 border-white/30 text-white hover:bg-white/20"
                 >
                   <Eye className="h-4 w-4 mr-2" />
-                  {remainingChecks} Free Checks left • No signup required
+                  {getUsageText()}
                 </Button>
-                {user && (
+                {user && !subscribed && (
                   <Button
                     onClick={handleBuyMoreChecks}
                     className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
@@ -290,8 +317,8 @@ const Index = () => {
       <UsageModal
         isOpen={showUsageModal}
         onClose={() => setShowUsageModal(false)}
-        remainingChecks={remainingChecks}
-        totalChecks={totalChecks}
+        remainingChecks={typeof remaining_checks === 'number' ? remaining_checks : 0}
+        totalChecks={subscribed ? Infinity : (typeof remaining_checks === 'number' ? remaining_checks : 5)}
         onUpgrade={user ? handleUpgrade : () => {}}
       />
       
@@ -304,6 +331,7 @@ const Index = () => {
       <PricingModal
         isOpen={showPricingModal}
         onClose={() => setShowPricingModal(false)}
+        onPurchase={createCheckout}
       />
     </div>
   );
