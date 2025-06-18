@@ -33,7 +33,7 @@ const UsageModal: React.FC<UsageModalProps> = ({
   const usedChecks = totalChecks - remainingChecks;
   const progressValue = (usedChecks / totalChecks) * 100;
 
-  // Don't show the modal for subscribed users
+  // Don't render the modal at all for subscribed users
   if (isSubscribed) {
     return null;
   }
