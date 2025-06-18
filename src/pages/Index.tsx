@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -223,7 +222,7 @@ const Index = () => {
   };
 
   const shouldShowUsageButton = () => {
-    // Don't show usage button for unlimited subscribers
+    // Don't show usage button for unlimited subscribers (monthly/yearly)
     return !hasUnlimitedAccess;
   };
 
