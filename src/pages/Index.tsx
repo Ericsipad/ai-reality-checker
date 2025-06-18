@@ -41,12 +41,25 @@ const Index = () => {
   
   const { toast } = useToast();
 
-  // Determine which tracking system to use
+  // Determine which tracking system to use and if user has unlimited access
   const loading = user ? authLoading : ipLoading;
-  const remaining_checks = user ? authRemainingChecks : ipRemainingChecks;
-  const totalChecks = user ? (subscribed ? Infinity : authRemainingChecks + 5) : ipTotalChecks;
+  const hasUnlimitedAccess = user && subscribed && (subscription_tier === 'monthly' || subscription_tier === 'yearly');
+  
+  // For display purposes - only relevant for non-unlimited users
+  const remaining_checks = user ? 
+    (hasUnlimitedAccess ? Infinity : authRemainingChecks) : 
+    ipRemainingChecks;
+  const totalChecks = user ? 
+    (hasUnlimitedAccess ? Infinity : authRemainingChecks + 5) : 
+    ipTotalChecks;
 
   const useCheck = (): boolean => {
+    // Unlimited access for active subscribers
+    if (hasUnlimitedAccess) {
+      return true;
+    }
+    
+    // Use appropriate tracking system for non-unlimited users
     if (user) {
       return useAuthCheck();
     } else {
@@ -82,7 +95,10 @@ const Index = () => {
           : "You've used all your free checks this week. Sign up for more!",
         variant: "destructive",
       });
-      setShowUsageModal(true);
+      // Only show usage modal for non-unlimited users
+      if (!hasUnlimitedAccess) {
+        setShowUsageModal(true);
+      }
       return;
     }
 
@@ -206,6 +222,11 @@ const Index = () => {
     return `${remaining_checks} Free Checks left this week • No signup required`;
   };
 
+  const shouldShowUsageButton = () => {
+    // Don't show usage button for unlimited subscribers
+    return !hasUnlimitedAccess;
+  };
+
   return (
     <div className="min-h-screen gradient-bg">
       <div className="container mx-auto px-4 py-6 sm:py-8">
@@ -280,15 +301,17 @@ const Index = () => {
           {!loading && (
             <div className="flex flex-col items-center space-y-4">
               <div className="flex flex-col sm:flex-row justify-center space-y-2 sm:space-y-0 sm:space-x-4">
-                <Button
-                  onClick={() => setShowUsageModal(true)}
-                  variant="outline"
-                  className="bg-white/10 border-white/30 text-white hover:bg-white/20 text-sm"
-                  size="sm"
-                >
-                  <Eye className="h-4 w-4 mr-2" />
-                  <span className="text-center">{getUsageText()}</span>
-                </Button>
+                {shouldShowUsageButton() && (
+                  <Button
+                    onClick={() => setShowUsageModal(true)}
+                    variant="outline"
+                    className="bg-white/10 border-white/30 text-white hover:bg-white/20 text-sm"
+                    size="sm"
+                  >
+                    <Eye className="h-4 w-4 mr-2" />
+                    <span className="text-center">{getUsageText()}</span>
+                  </Button>
+                )}
                 {user && !subscribed && (
                   <Button
                     onClick={handleBuyMoreChecks}
@@ -298,6 +321,12 @@ const Index = () => {
                     <CreditCard className="h-4 w-4 mr-2" />
                     Buy More Checks
                   </Button>
+                )}
+                {hasUnlimitedAccess && (
+                  <div className="bg-white/10 border border-white/30 text-white px-4 py-2 rounded-md text-sm flex items-center">
+                    <Eye className="h-4 w-4 mr-2" />
+                    <span>{getUsageText()}</span>
+                  </div>
                 )}
               </div>
               {!user && (
@@ -362,6 +391,7 @@ const Index = () => {
         remainingChecks={remaining_checks}
         totalChecks={totalChecks}
         onUpgrade={user ? handleUpgrade : () => {}}
+        isSubscribed={hasUnlimitedAccess}
       />
       
       <ResultModal

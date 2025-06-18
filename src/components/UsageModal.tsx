@@ -18,6 +18,7 @@ interface UsageModalProps {
   remainingChecks: number;
   totalChecks: number;
   onUpgrade?: () => void;
+  isSubscribed?: boolean;
 }
 
 const UsageModal: React.FC<UsageModalProps> = ({ 
@@ -25,11 +26,17 @@ const UsageModal: React.FC<UsageModalProps> = ({
   onClose, 
   remainingChecks, 
   totalChecks,
-  onUpgrade
+  onUpgrade,
+  isSubscribed = false
 }) => {
   const { user } = useAuth();
   const usedChecks = totalChecks - remainingChecks;
   const progressValue = (usedChecks / totalChecks) * 100;
+
+  // Don't show the modal for subscribed users
+  if (isSubscribed) {
+    return null;
+  }
 
   const handleUpgrade = () => {
     onClose();
