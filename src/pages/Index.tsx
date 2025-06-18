@@ -195,7 +195,7 @@ const Index = () => {
       return `${remaining_checks} checks remaining • Pay-per-use`;
     }
     
-    return `${remaining_checks} Free Checks left • No signup required`;
+    return `${remaining_checks} Free Checks left this month • No signup required`;
   };
 
   return (

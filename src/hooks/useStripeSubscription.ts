@@ -26,7 +26,6 @@ export const useStripeSubscription = () => {
     if (user) {
       checkSubscription();
     } else {
-      // For non-authenticated users, don't set any subscription data
       setSubscriptionData({
         subscribed: false,
         subscription_tier: null,
@@ -48,7 +47,6 @@ export const useStripeSubscription = () => {
         return;
       }
 
-      // Ensure remaining_checks is always a number
       const remainingChecks = typeof data.remaining_checks === 'number' 
         ? data.remaining_checks 
         : 0;
@@ -85,7 +83,6 @@ export const useStripeSubscription = () => {
         throw new Error(error.message);
       }
 
-      // Open Stripe checkout in a new tab
       window.open(data.url, '_blank');
     } catch (error) {
       console.error('Error creating checkout:', error);
@@ -115,7 +112,6 @@ export const useStripeSubscription = () => {
         throw new Error(error.message);
       }
 
-      // Open customer portal in a new tab
       window.open(data.url, '_blank');
     } catch (error) {
       console.error('Error opening customer portal:', error);
@@ -128,23 +124,15 @@ export const useStripeSubscription = () => {
   };
 
   const useCheck = (): boolean => {
-    // Only handle authenticated users here
     if (!user) return false;
 
     // Unlimited for active subscriptions
     if (subscriptionData.subscribed) return true;
 
     // Check remaining pay-per-use checks
-    const remaining = subscriptionData.remaining_checks;
-    if (remaining <= 0) return false;
+    if (subscriptionData.remaining_checks <= 0) return false;
 
-    // Update remaining checks optimistically
-    setSubscriptionData(prev => ({
-      ...prev,
-      remaining_checks: Math.max(0, prev.remaining_checks - 1)
-    }));
-
-    // Update database
+    // Update database first, then update local state on success
     updateChecksInDatabase();
     
     return true;
@@ -154,19 +142,22 @@ export const useStripeSubscription = () => {
     if (!user) return;
 
     try {
+      const newRemainingChecks = Math.max(0, subscriptionData.remaining_checks - 1);
+      
       const { error } = await supabase
         .from('subscribers')
         .update({
-          remaining_checks: Math.max(0, subscriptionData.remaining_checks - 1)
+          remaining_checks: newRemainingChecks
         })
         .eq('user_id', user.id);
 
       if (error) {
         console.error('Error updating checks:', error);
-        // Revert optimistic update on error
+      } else {
+        // Update local state only after successful database update
         setSubscriptionData(prev => ({
           ...prev,
-          remaining_checks: prev.remaining_checks + 1
+          remaining_checks: newRemainingChecks
         }));
       }
     } catch (error) {
