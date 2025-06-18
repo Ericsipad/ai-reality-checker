@@ -36,10 +36,44 @@ export const useStripeSubscription = () => {
     }
   }, [user]);
 
+  // Check for success/cancel URL parameters and refresh subscription status
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const success = urlParams.get('success');
+    const canceled = urlParams.get('canceled');
+    
+    if (success === 'true' && user) {
+      // Payment was successful, wait a bit for webhook processing then check subscription
+      console.log('Payment success detected, refreshing subscription status...');
+      toast({
+        title: "Payment successful!",
+        description: "Your account is being updated...",
+      });
+      
+      // Wait 3 seconds for webhook to process, then check subscription
+      setTimeout(() => {
+        checkSubscription();
+      }, 3000);
+      
+      // Clean up URL parameters
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } else if (canceled === 'true') {
+      toast({
+        title: "Payment canceled",
+        description: "Your payment was canceled.",
+        variant: "destructive",
+      });
+      
+      // Clean up URL parameters
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, [user, toast]);
+
   const checkSubscription = async () => {
     if (!user) return;
 
     try {
+      console.log('Checking subscription status...');
       const { data, error } = await supabase.functions.invoke('check-subscription');
       
       if (error) {
@@ -51,12 +85,22 @@ export const useStripeSubscription = () => {
         ? data.remaining_checks 
         : 0;
 
+      console.log('Subscription data received:', data);
+      
       setSubscriptionData({
         subscribed: data.subscribed || false,
         subscription_tier: data.subscription_tier || null,
         subscription_end: data.subscription_end || null,
         remaining_checks: remainingChecks
       });
+
+      // Show toast if user has checks after a purchase
+      if (remainingChecks > 0 && data.subscription_tier === 'pay-per-use') {
+        toast({
+          title: "Checks added!",
+          description: `You now have ${remainingChecks} checks remaining.`,
+        });
+      }
     } catch (error) {
       console.error('Error in checkSubscription:', error);
     } finally {
@@ -83,6 +127,8 @@ export const useStripeSubscription = () => {
         throw new Error(error.message);
       }
 
+      console.log('Redirecting to checkout:', data.url);
+
       // For mobile, use window.location.href instead of window.open
       if (window.innerWidth <= 768) {
         window.location.href = data.url;
@@ -94,6 +140,7 @@ export const useStripeSubscription = () => {
       const handleVisibilityChange = () => {
         if (!document.hidden) {
           // User returned to the tab, check subscription after a short delay
+          console.log('User returned to tab, checking subscription...');
           setTimeout(() => {
             checkSubscription();
           }, 2000);
