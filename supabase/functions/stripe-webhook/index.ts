@@ -53,7 +53,7 @@ serve(async (req) => {
 
     logStep("Event received", { type: event.type, id: event.id });
 
-    // Handle both checkout.session.completed and payment_intent.succeeded events
+    // Handle checkout.session.completed for $3 pay-per-use payments
     if (event.type === "checkout.session.completed") {
       const session = event.data.object as Stripe.Checkout.Session;
       
@@ -65,20 +65,7 @@ serve(async (req) => {
           metadata: session.metadata
         });
 
-        await processPayment(stripe, supabaseClient, session.metadata, session.customer, logStep);
-      }
-    } else if (event.type === "payment_intent.succeeded") {
-      const paymentIntent = event.data.object as Stripe.PaymentIntent;
-      
-      // Check if this is a $3 payment (300 cents)
-      if (paymentIntent.amount === 300 && paymentIntent.status === "succeeded") {
-        logStep("Processing $3 payment from payment intent", { 
-          paymentIntentId: paymentIntent.id,
-          customerId: paymentIntent.customer,
-          metadata: paymentIntent.metadata
-        });
-
-        await processPayment(stripe, supabaseClient, paymentIntent.metadata, paymentIntent.customer, logStep);
+        await processPayPerUsePayment(stripe, supabaseClient, session, logStep);
       }
     }
 
@@ -93,37 +80,38 @@ serve(async (req) => {
   }
 });
 
-async function processPayment(
+async function processPayPerUsePayment(
   stripe: Stripe, 
   supabaseClient: any, 
-  metadata: any, 
-  customerId: string | null, 
+  session: Stripe.Checkout.Session,
   logStep: Function
 ) {
-  // First try to get user info from metadata
-  let userId = metadata?.user_id;
-  let userEmail = metadata?.user_email;
+  // Get user info from metadata first
+  let userId = session.metadata?.user_id;
+  let userEmail = session.metadata?.user_email;
 
-  logStep("Processing payment with metadata", { userId, userEmail, customerId });
+  logStep("Processing payment with session metadata", { userId, userEmail, customerId: session.customer });
 
-  if (!userId || !userEmail) {
-    logStep("No user metadata found, trying to get from Stripe customer");
-    
-    // Fallback to getting customer email from Stripe if metadata is missing
-    if (customerId) {
-      const customer = await stripe.customers.retrieve(customerId as string);
+  // If no metadata, try to get email from Stripe customer
+  if (!userEmail && session.customer) {
+    try {
+      const customer = await stripe.customers.retrieve(session.customer as string);
       if (customer && !customer.deleted) {
         userEmail = customer.email;
         logStep("Retrieved customer email from Stripe", { email: userEmail });
       }
+    } catch (err) {
+      logStep("Error retrieving customer from Stripe", { error: err.message });
     }
+  }
 
-    if (!userEmail) {
-      logStep("No customer email found, skipping");
-      return;
-    }
+  if (!userEmail) {
+    logStep("No customer email found, cannot process payment");
+    return;
+  }
 
-    // Try to find user by email in our database
+  // If no userId in metadata, look up user by email in our database
+  if (!userId) {
     const { data: userData, error: userError } = await supabaseClient
       .from("subscribers")
       .select("user_id, email")
@@ -131,17 +119,18 @@ async function processPayment(
       .single();
 
     if (userError || !userData) {
-      logStep("User not found in database", { email: userEmail, error: userError });
+      logStep("User not found in database by email", { email: userEmail, error: userError });
       return;
     }
 
     userId = userData.user_id;
-    logStep("Found user by email", { userId, email: userEmail });
-  } else {
-    logStep("Using metadata", { userId, userEmail });
+    logStep("Found user by email lookup", { userId, email: userEmail });
   }
 
-  // Update the subscriber record to add 15 checks
+  // Now we have both userId and userEmail, proceed with crediting checks
+  logStep("About to credit checks", { userId, userEmail });
+
+  // Get current subscriber record
   const { data: existingSubscriber, error: fetchError } = await supabaseClient
     .from("subscribers")
     .select("remaining_checks")
@@ -156,13 +145,14 @@ async function processPayment(
   const currentChecks = existingSubscriber?.remaining_checks || 0;
   const newChecks = currentChecks + 15;
 
-  logStep("Updating checks", { 
+  logStep("Updating checks in database", { 
     userId,
     userEmail,
     currentChecks, 
     newChecks
   });
 
+  // Update the subscriber record
   const { error: updateError } = await supabaseClient
     .from("subscribers")
     .upsert({
