@@ -38,10 +38,10 @@ serve(async (req) => {
       throw new Error("No Stripe signature found");
     }
 
-    // Verify the webhook signature
+    // Verify the webhook signature using the async method
     let event;
     try {
-      event = stripe.webhooks.constructEvent(
+      event = await stripe.webhooks.constructEventAsync(
         body,
         signature,
         Deno.env.get("STRIPE_WEBHOOK_SECRET") || ""
@@ -53,28 +53,28 @@ serve(async (req) => {
 
     logStep("Event received", { type: event.type, id: event.id });
 
-    // Handle the payment_intent.succeeded event for pay-per-use purchases
-    if (event.type === "payment_intent.succeeded") {
-      const paymentIntent = event.data.object as Stripe.PaymentIntent;
+    // Handle the checkout.session.completed event for pay-per-use purchases
+    if (event.type === "checkout.session.completed") {
+      const session = event.data.object as Stripe.Checkout.Session;
       
       // Check if this is a $3 payment (300 cents)
-      if (paymentIntent.amount === 300 && paymentIntent.status === "succeeded") {
+      if (session.amount_total === 300 && session.payment_status === "paid") {
         logStep("Processing $3 payment", { 
-          paymentIntentId: paymentIntent.id,
-          customerId: paymentIntent.customer,
-          metadata: paymentIntent.metadata
+          sessionId: session.id,
+          customerId: session.customer,
+          metadata: session.metadata
         });
 
-        // First try to get user info from payment intent metadata
-        let userId = paymentIntent.metadata?.user_id;
-        let userEmail = paymentIntent.metadata?.user_email;
+        // First try to get user info from session metadata
+        let userId = session.metadata?.user_id;
+        let userEmail = session.metadata?.user_email;
 
         if (!userId || !userEmail) {
           logStep("No user metadata found, trying to get from Stripe customer");
           
           // Fallback to getting customer email from Stripe if metadata is missing
-          if (paymentIntent.customer) {
-            const customer = await stripe.customers.retrieve(paymentIntent.customer as string);
+          if (session.customer) {
+            const customer = await stripe.customers.retrieve(session.customer as string);
             if (customer && !customer.deleted) {
               userEmail = customer.email;
               logStep("Retrieved customer email from Stripe", { email: userEmail });
