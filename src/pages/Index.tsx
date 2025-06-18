@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -188,7 +189,14 @@ const Index = () => {
 
   const getUsageText = () => {
     if (user && subscribed) {
-      return `Unlimited checks • ${subscription_tier} plan`;
+      // Handle different subscription tiers properly
+      if (subscription_tier === 'monthly') {
+        return `Unlimited checks • Monthly plan`;
+      } else if (subscription_tier === 'yearly') {
+        return `Unlimited checks • Yearly plan`;
+      } else {
+        return `Unlimited checks`;
+      }
     }
     
     if (user && subscription_tier === 'pay-per-use') {
