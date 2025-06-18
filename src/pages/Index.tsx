@@ -44,12 +44,12 @@ const Index = () => {
   const loading = user ? authLoading : ipLoading;
   const hasUnlimitedAccess = user && subscribed && (subscription_tier === 'monthly' || subscription_tier === 'yearly');
   
-  // For display purposes - only relevant for non-unlimited users
+  // For display purposes - handle infinity properly
   const remaining_checks = user ? 
-    (hasUnlimitedAccess ? Infinity : authRemainingChecks) : 
+    (hasUnlimitedAccess ? 999999 : authRemainingChecks) : 
     ipRemainingChecks;
   const totalChecks = user ? 
-    (hasUnlimitedAccess ? Infinity : authRemainingChecks + 5) : 
+    (hasUnlimitedAccess ? 999999 : Math.max(authRemainingChecks + 5, 5)) : 
     ipTotalChecks;
 
   const useCheck = (): boolean => {
@@ -107,14 +107,21 @@ const Index = () => {
       // Handle file upload vs direct text vs video URL
       if (typeof content === 'string') {
         if (content.startsWith('VIDEO_URL:')) {
-          // Handle video URL
-          const videoUrl = content.replace('VIDEO_URL:', '');
+          // Handle video URL - more robust processing
+          const videoUrl = content.replace('VIDEO_URL:', '').trim();
           console.log('Processing video URL:', videoUrl);
-          requestBody.videoUrl = videoUrl;
+          
+          // Validate URL format
+          try {
+            new URL(videoUrl);
+            requestBody.videoUrl = videoUrl;
+          } catch (urlError) {
+            throw new Error('Invalid video URL format');
+          }
         } else {
           // Handle regular text content
           console.log('Processing text content');
-          requestBody.text = content;
+          requestBody.text = content.trim();
         }
       } else {
         console.log('Processing file content, type:', content.type);
@@ -142,8 +149,12 @@ const Index = () => {
         } else {
           console.log('Reading text file');
           // Handle text file
-          const textContent = await content.text();
-          requestBody.text = textContent;
+          try {
+            const textContent = await content.text();
+            requestBody.text = textContent.trim();
+          } catch (textError) {
+            throw new Error('Failed to read text file');
+          }
         }
       }
 
@@ -156,7 +167,7 @@ const Index = () => {
 
       if (error) {
         console.error('Edge function error:', error);
-        throw new Error('Failed to analyze content');
+        throw new Error('Failed to analyze content. Please try again later.');
       }
 
       console.log('AI analysis result:', data);
@@ -172,7 +183,7 @@ const Index = () => {
       console.error('Analysis error:', error);
       toast({
         title: "Analysis failed",
-        description: "There was an error analyzing your content. Please try again.",
+        description: error instanceof Error ? error.message : "There was an error analyzing your content. Please try again.",
         variant: "destructive",
       });
     }
@@ -194,6 +205,7 @@ const Index = () => {
         description: "You've been signed out successfully.",
       });
     } catch (error) {
+      console.error('Sign out error:', error);
       toast({
         title: "Error",
         description: "Failed to sign out. Please try again.",
@@ -215,7 +227,7 @@ const Index = () => {
     }
     
     if (user && subscription_tier === 'pay-per-use') {
-      return `${remaining_checks} checks remaining • Pay-per-use`;
+      return `${authRemainingChecks} checks remaining • Pay-per-use`;
     }
     
     return `${remaining_checks} Free Checks left this week • No signup required`;

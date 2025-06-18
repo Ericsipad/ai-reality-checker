@@ -21,14 +21,30 @@ export const useIPUsageTracking = () => {
     const now = new Date();
     
     if (stored) {
-      const data: IPUsageData = JSON.parse(stored);
-      const lastReset = new Date(data.last_reset);
-      
-      // Check if it's been a week since last reset
-      const weeksSinceReset = Math.floor((now.getTime() - lastReset.getTime()) / (7 * 24 * 60 * 60 * 1000));
-      
-      if (weeksSinceReset >= 1) {
-        // Reset weekly usage
+      try {
+        const data: IPUsageData = JSON.parse(stored);
+        const lastReset = new Date(data.last_reset);
+        
+        // Check if it's been a week since last reset
+        const weeksSinceReset = Math.floor((now.getTime() - lastReset.getTime()) / (7 * 24 * 60 * 60 * 1000));
+        
+        if (weeksSinceReset >= 1) {
+          // Reset weekly usage
+          const newData: IPUsageData = {
+            checks_used: 0,
+            total_checks: 3,
+            last_reset: now.toISOString()
+          };
+          localStorage.setItem('aiDetectionUsage_IP', JSON.stringify(newData));
+          setRemainingChecks(3);
+        } else {
+          // Calculate remaining checks correctly
+          const remaining = Math.max(0, data.total_checks - data.checks_used);
+          setRemainingChecks(remaining);
+        }
+      } catch (error) {
+        console.error('Error parsing stored usage data:', error);
+        // Initialize with fresh data if parsing fails
         const newData: IPUsageData = {
           checks_used: 0,
           total_checks: 3,
@@ -36,10 +52,6 @@ export const useIPUsageTracking = () => {
         };
         localStorage.setItem('aiDetectionUsage_IP', JSON.stringify(newData));
         setRemainingChecks(3);
-      } else {
-        // Fix: Ensure remaining checks calculation is correct
-        const remaining = Math.max(0, data.total_checks - data.checks_used);
-        setRemainingChecks(remaining);
       }
     } else {
       // First time user - initialize with full 3 checks
@@ -59,17 +71,22 @@ export const useIPUsageTracking = () => {
 
     const stored = localStorage.getItem('aiDetectionUsage_IP');
     if (stored) {
-      const data: IPUsageData = JSON.parse(stored);
-      const newData: IPUsageData = {
-        ...data,
-        checks_used: data.checks_used + 1
-      };
-      localStorage.setItem('aiDetectionUsage_IP', JSON.stringify(newData));
-      
-      // Fix: Update remaining checks after successful storage
-      const newRemaining = Math.max(0, newData.total_checks - newData.checks_used);
-      setRemainingChecks(newRemaining);
-      return true;
+      try {
+        const data: IPUsageData = JSON.parse(stored);
+        const newData: IPUsageData = {
+          ...data,
+          checks_used: data.checks_used + 1
+        };
+        localStorage.setItem('aiDetectionUsage_IP', JSON.stringify(newData));
+        
+        // Update remaining checks after successful storage
+        const newRemaining = Math.max(0, newData.total_checks - newData.checks_used);
+        setRemainingChecks(newRemaining);
+        return true;
+      } catch (error) {
+        console.error('Error updating usage data:', error);
+        return false;
+      }
     }
     return false;
   };
