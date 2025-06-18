@@ -104,6 +104,8 @@ async function processPayment(
   let userId = metadata?.user_id;
   let userEmail = metadata?.user_email;
 
+  logStep("Processing payment with metadata", { userId, userEmail, customerId });
+
   if (!userId || !userEmail) {
     logStep("No user metadata found, trying to get from Stripe customer");
     
