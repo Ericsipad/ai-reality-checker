@@ -197,6 +197,53 @@ const Index = () => {
     setShowPricingModal(true);
   };
 
+  const handlePurchase = async (plan: string) => {
+    try {
+      console.log('Creating checkout for plan:', plan);
+      const { data, error } = await supabase.functions.invoke('create-checkout', {
+        body: { plan }
+      });
+
+      if (error) {
+        console.error('Checkout creation error:', error);
+        throw new Error(error.message || 'Failed to create checkout session');
+      }
+
+      if (!data?.url) {
+        throw new Error('No checkout URL received');
+      }
+
+      console.log('Checkout URL received:', data.url);
+      
+      // Close the pricing modal first
+      setShowPricingModal(false);
+      
+      // Small delay to ensure modal closes before redirect
+      setTimeout(() => {
+        // On mobile, use window.location.href for better compatibility
+        if (window.innerWidth <= 768) {
+          window.location.href = data.url;
+        } else {
+          // On desktop, open in new tab
+          window.open(data.url, '_blank');
+        }
+      }, 100);
+
+      toast({
+        title: "Redirecting to checkout",
+        description: "Please complete your purchase in the new window.",
+      });
+    } catch (error) {
+      console.error('Purchase error:', error);
+      toast({
+        title: "Checkout failed",
+        description: error instanceof Error ? error.message : "Failed to create checkout session. Please try again.",
+        variant: "destructive",
+      });
+      throw error; // Re-throw to prevent modal from closing in PricingModal
+    }
+  };
+
   const handleSignOut = async () => {
     try {
       await signOut();
@@ -414,7 +461,7 @@ const Index = () => {
       <PricingModal
         isOpen={showPricingModal}
         onClose={() => setShowPricingModal(false)}
-        onPurchase={createCheckout}
+        onPurchase={handlePurchase}
       />
     </div>
   );
