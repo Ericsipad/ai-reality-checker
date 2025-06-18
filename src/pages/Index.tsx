@@ -277,7 +277,13 @@ const Index = () => {
       return `${authRemainingChecks} checks remaining • Pay-per-use`;
     }
     
-    return `${remaining_checks} Free Checks left this week • No signup required`;
+    // Only show "no signup required" for non-authenticated users
+    if (!user) {
+      return `${remaining_checks} Free Checks left this week • No signup required`;
+    }
+    
+    // For authenticated users without subscription
+    return `${remaining_checks} Free Checks left this week`;
   };
 
   const shouldShowUsageButton = () => {

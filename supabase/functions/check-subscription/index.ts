@@ -51,10 +51,10 @@ serve(async (req) => {
         subscribed: false,
         subscription_tier: null,
         subscription_end: null,
-        remaining_checks: 0,
+        remaining_checks: 5, // Give new users 5 free checks
         updated_at: new Date().toISOString(),
-      }, { onConflict: 'email' });
-      return new Response(JSON.stringify({ subscribed: false, subscription_tier: null, remaining_checks: 0 }), {
+      }, { onConflict: 'user_id' });
+      return new Response(JSON.stringify({ subscribed: false, subscription_tier: null, remaining_checks: 5 }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
       });
