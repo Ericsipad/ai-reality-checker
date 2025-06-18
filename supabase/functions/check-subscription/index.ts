@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@14.21.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
@@ -96,58 +95,49 @@ serve(async (req) => {
 
     // Check for one-time payments (pay-per-use) - only if no active subscription
     if (!hasActiveSub) {
+      // First, get current subscriber record to see existing checks
+      const { data: existingSubscriber } = await supabaseClient
+        .from("subscribers")
+        .select("remaining_checks")
+        .eq("user_id", user.id)
+        .single();
+
+      const currentChecks = existingSubscriber?.remaining_checks || 0;
+      logStep("Current checks from database", { currentChecks });
+
       // Get all successful payment intents for this customer
       const paymentIntents = await stripe.paymentIntents.list({
         customer: customerId,
-        limit: 100, // Increase limit to catch all payments
+        limit: 100,
       });
 
       // Calculate total checks purchased from successful $3 payments
-      let totalChecksPurchased = 0;
       const successfulPayments = paymentIntents.data.filter(payment => 
         payment.status === "succeeded" && payment.amount === 300
       );
       
-      totalChecksPurchased = successfulPayments.length * 15; // 15 checks per $3 payment
+      const totalChecksPurchased = successfulPayments.length * 15; // 15 checks per $3 payment
       logStep("Pay-per-use payments found", { 
         paymentCount: successfulPayments.length, 
-        totalChecksPurchased 
+        totalChecksPurchased,
+        currentChecks
       });
 
       if (totalChecksPurchased > 0) {
-        // Get current subscriber record to see how many checks have been used
-        const { data: existingSubscriber } = await supabaseClient
-          .from("subscribers")
-          .select("remaining_checks")
-          .eq("user_id", user.id)
-          .single();
-
-        // If this is the first time we're seeing this user with purchases, 
-        // or if they have fewer checks than they should based on purchases,
-        // update their remaining checks
-        const currentRemaining = existingSubscriber?.remaining_checks || 0;
-        
-        // The remaining checks should be at least the total purchased minus what they've used
-        // For simplicity, if they have fewer checks than total purchased, give them the full amount
-        // This handles the case where they just made a purchase
-        if (currentRemaining < totalChecksPurchased) {
-          remainingChecks = totalChecksPurchased;
-          logStep("Updating remaining checks", { 
-            currentRemaining, 
-            totalChecksPurchased, 
-            newRemaining: remainingChecks 
-          });
-        } else {
-          remainingChecks = currentRemaining;
-          logStep("Keeping existing remaining checks", { remainingChecks });
-        }
-        
+        // The remaining checks should be the current checks from database
+        // This ensures we keep the user's current check count as updated by the webhook
+        remainingChecks = Math.max(currentChecks, totalChecksPurchased);
         subscriptionTier = "pay-per-use";
+        
+        logStep("Setting remaining checks", { 
+          finalRemainingChecks: remainingChecks,
+          reason: currentChecks >= totalChecksPurchased ? "using current checks" : "using total purchased"
+        });
       }
     }
 
     // Update database
-    await supabaseClient.from("subscribers").upsert({
+    const updateData = {
       email: user.email,
       user_id: user.id,
       stripe_customer_id: customerId,
@@ -156,7 +146,11 @@ serve(async (req) => {
       subscription_end: subscriptionEnd,
       remaining_checks: hasActiveSub ? null : remainingChecks, // null for unlimited plans
       updated_at: new Date().toISOString(),
-    }, { onConflict: 'email' });
+    };
+
+    logStep("About to update database", updateData);
+
+    await supabaseClient.from("subscribers").upsert(updateData, { onConflict: 'email' });
 
     logStep("Updated database with subscription info", { 
       subscribed: hasActiveSub, 
