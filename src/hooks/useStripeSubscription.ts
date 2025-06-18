@@ -50,10 +50,50 @@ export const useStripeSubscription = () => {
         description: "Your account is being updated...",
       });
       
-      // Wait 3 seconds for webhook to process, then check subscription
-      setTimeout(() => {
-        checkSubscription();
-      }, 3000);
+      // Store the previous check count to compare later
+      const previousChecks = subscriptionData.remaining_checks;
+      
+      // Try multiple times with increasing delays to catch the webhook update
+      const checkMultipleTimes = async () => {
+        for (let i = 0; i < 5; i++) {
+          await new Promise(resolve => setTimeout(resolve, (i + 1) * 2000)); // 2s, 4s, 6s, 8s, 10s
+          console.log(`Checking subscription attempt ${i + 1}`);
+          
+          const { data, error } = await supabase.functions.invoke('check-subscription');
+          if (!error && data) {
+            const newChecks = typeof data.remaining_checks === 'number' ? data.remaining_checks : 0;
+            
+            setSubscriptionData({
+              subscribed: data.subscribed || false,
+              subscription_tier: data.subscription_tier || null,
+              subscription_end: data.subscription_end || null,
+              remaining_checks: newChecks
+            });
+            
+            // If we detect new checks were added, show success message and break
+            if (newChecks > previousChecks && data.subscription_tier === 'pay-per-use') {
+              const addedChecks = newChecks - previousChecks;
+              toast({
+                title: "Checks added successfully!",
+                description: `${addedChecks} new checks added. You now have ${newChecks} checks remaining.`,
+              });
+              console.log(`Successfully detected ${addedChecks} new checks added`);
+              break;
+            }
+            
+            // If this is the last attempt and we still don't see new checks
+            if (i === 4) {
+              toast({
+                title: "Payment processed",
+                description: "Your payment was successful. If checks don't appear, please refresh the page.",
+                variant: "destructive",
+              });
+            }
+          }
+        }
+      };
+      
+      checkMultipleTimes();
       
       // Clean up URL parameters
       window.history.replaceState({}, document.title, window.location.pathname);
@@ -93,14 +133,6 @@ export const useStripeSubscription = () => {
         subscription_end: data.subscription_end || null,
         remaining_checks: remainingChecks
       });
-
-      // Show toast if user has checks after a purchase
-      if (remainingChecks > 0 && data.subscription_tier === 'pay-per-use') {
-        toast({
-          title: "Checks added!",
-          description: `You now have ${remainingChecks} checks remaining.`,
-        });
-      }
     } catch (error) {
       console.error('Error in checkSubscription:', error);
     } finally {
