@@ -57,16 +57,32 @@ serve(async (req) => {
     if (event.type === "checkout.session.completed") {
       const session = event.data.object as Stripe.Checkout.Session;
       
-      // Check if this is a $3 payment (300 cents)
-      if (session.amount_total === 300 && session.payment_status === "paid") {
-        logStep("Processing $3 payment from checkout session", { 
+      logStep("Processing checkout session", { 
+        sessionId: session.id,
+        amountTotal: session.amount_total,
+        paymentStatus: session.payment_status,
+        mode: session.mode,
+        metadata: session.metadata
+      });
+
+      // Check if this is a $3 payment (300 cents) and mode is payment
+      if (session.amount_total === 300 && session.mode === "payment" && session.payment_status === "paid") {
+        logStep("Processing $3 one-time payment", { 
           sessionId: session.id,
           customerId: session.customer,
           metadata: session.metadata
         });
 
         await processPayPerUsePayment(stripe, supabaseClient, session, logStep);
+      } else {
+        logStep("Session does not match pay-per-use criteria", {
+          amountTotal: session.amount_total,
+          mode: session.mode,
+          paymentStatus: session.payment_status
+        });
       }
+    } else {
+      logStep("Event type not handled", { eventType: event.type });
     }
 
     return new Response("OK", { status: 200 });
@@ -90,7 +106,7 @@ async function processPayPerUsePayment(
   let userId = session.metadata?.user_id;
   let userEmail = session.metadata?.user_email;
 
-  logStep("Processing payment with session metadata", { userId, userEmail, customerId: session.customer });
+  logStep("Starting payment processing", { userId, userEmail, customerId: session.customer });
 
   // If no metadata, try to get email from Stripe customer
   if (!userEmail && session.customer) {
@@ -145,7 +161,7 @@ async function processPayPerUsePayment(
   const currentChecks = existingSubscriber?.remaining_checks || 0;
   const newChecks = currentChecks + 15;
 
-  logStep("Updating checks in database", { 
+  logStep("Crediting 15 checks", { 
     userId,
     userEmail,
     currentChecks, 
@@ -170,9 +186,26 @@ async function processPayPerUsePayment(
     throw updateError;
   }
 
-  logStep("Successfully added 15 checks", { 
+  logStep("Successfully credited 15 checks", { 
     userId,
     userEmail, 
-    newTotal: newChecks 
+    finalCheckCount: newChecks,
+    stripeSessionId: session.id
   });
+
+  // Verify the update worked by checking the database
+  const { data: verifyData, error: verifyError } = await supabaseClient
+    .from("subscribers")
+    .select("remaining_checks")
+    .eq("user_id", userId)
+    .single();
+
+  if (verifyError) {
+    logStep("Error verifying update", { error: verifyError });
+  } else {
+    logStep("Database verification", { 
+      updatedChecks: verifyData.remaining_checks,
+      updateSuccessful: verifyData.remaining_checks === newChecks
+    });
+  }
 }
