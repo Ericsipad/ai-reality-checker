@@ -83,7 +83,30 @@ export const useStripeSubscription = () => {
         throw new Error(error.message);
       }
 
-      window.open(data.url, '_blank');
+      // For mobile, use window.location.href instead of window.open
+      if (window.innerWidth <= 768) {
+        window.location.href = data.url;
+      } else {
+        window.open(data.url, '_blank');
+      }
+
+      // Set up a listener for when the user returns to check their subscription
+      const handleVisibilityChange = () => {
+        if (!document.hidden) {
+          // User returned to the tab, check subscription after a short delay
+          setTimeout(() => {
+            checkSubscription();
+          }, 2000);
+        }
+      };
+
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+
+      // Clean up the listener after 5 minutes
+      setTimeout(() => {
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+      }, 300000);
+
     } catch (error) {
       console.error('Error creating checkout:', error);
       toast({

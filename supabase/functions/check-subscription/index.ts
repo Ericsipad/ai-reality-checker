@@ -94,31 +94,55 @@ serve(async (req) => {
       logStep("Active subscription found", { subscriptionId: subscription.id, tier: subscriptionTier });
     }
 
-    // Check for one-time payments (pay-per-use)
+    // Check for one-time payments (pay-per-use) - only if no active subscription
     if (!hasActiveSub) {
+      // Get all successful payment intents for this customer
       const paymentIntents = await stripe.paymentIntents.list({
         customer: customerId,
-        limit: 10,
+        limit: 100, // Increase limit to catch all payments
       });
 
-      let totalChecks = 0;
-      for (const payment of paymentIntents.data) {
-        if (payment.status === "succeeded" && payment.amount === 300) { // $3 payments
-          totalChecks += 15; // 15 checks per $3 payment
-        }
-      }
+      // Calculate total checks purchased from successful $3 payments
+      let totalChecksPurchased = 0;
+      const successfulPayments = paymentIntents.data.filter(payment => 
+        payment.status === "succeeded" && payment.amount === 300
+      );
+      
+      totalChecksPurchased = successfulPayments.length * 15; // 15 checks per $3 payment
+      logStep("Pay-per-use payments found", { 
+        paymentCount: successfulPayments.length, 
+        totalChecksPurchased 
+      });
 
-      if (totalChecks > 0) {
-        // Get current usage from existing subscriber record
+      if (totalChecksPurchased > 0) {
+        // Get current subscriber record to see how many checks have been used
         const { data: existingSubscriber } = await supabaseClient
           .from("subscribers")
           .select("remaining_checks")
           .eq("user_id", user.id)
           .single();
 
-        remainingChecks = existingSubscriber?.remaining_checks || totalChecks;
+        // If this is the first time we're seeing this user with purchases, 
+        // or if they have fewer checks than they should based on purchases,
+        // update their remaining checks
+        const currentRemaining = existingSubscriber?.remaining_checks || 0;
+        
+        // The remaining checks should be at least the total purchased minus what they've used
+        // For simplicity, if they have fewer checks than total purchased, give them the full amount
+        // This handles the case where they just made a purchase
+        if (currentRemaining < totalChecksPurchased) {
+          remainingChecks = totalChecksPurchased;
+          logStep("Updating remaining checks", { 
+            currentRemaining, 
+            totalChecksPurchased, 
+            newRemaining: remainingChecks 
+          });
+        } else {
+          remainingChecks = currentRemaining;
+          logStep("Keeping existing remaining checks", { remainingChecks });
+        }
+        
         subscriptionTier = "pay-per-use";
-        logStep("Pay-per-use checks found", { totalChecks, remainingChecks });
       }
     }
 
