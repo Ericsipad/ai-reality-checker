@@ -57,6 +57,10 @@ serve(async (req) => {
       customer_email: customerId ? undefined : user.email,
       success_url: `${origin}/?success=true`,
       cancel_url: `${origin}/?canceled=true`,
+      metadata: {
+        user_id: user.id,
+        user_email: user.email,
+      },
     };
 
     // Configure based on plan
@@ -74,7 +78,11 @@ serve(async (req) => {
           },
         ],
         mode: "payment",
-        metadata: { plan: "pay-per-use", checks: "15" },
+        metadata: { 
+          ...sessionConfig.metadata,
+          plan: "pay-per-use", 
+          checks: "15" 
+        },
       };
     } else if (plan === "monthly") {
       sessionConfig = {
@@ -91,7 +99,10 @@ serve(async (req) => {
           },
         ],
         mode: "subscription",
-        metadata: { plan: "monthly" },
+        metadata: { 
+          ...sessionConfig.metadata,
+          plan: "monthly" 
+        },
       };
     } else if (plan === "yearly") {
       sessionConfig = {
@@ -108,14 +119,17 @@ serve(async (req) => {
           },
         ],
         mode: "subscription",
-        metadata: { plan: "yearly" },
+        metadata: { 
+          ...sessionConfig.metadata,
+          plan: "yearly" 
+        },
       };
     } else {
       throw new Error("Invalid plan selected");
     }
 
     const session = await stripe.checkout.sessions.create(sessionConfig);
-    logStep("Checkout session created", { sessionId: session.id, url: session.url });
+    logStep("Checkout session created", { sessionId: session.id, url: session.url, metadata: sessionConfig.metadata });
 
     return new Response(JSON.stringify({ url: session.url }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

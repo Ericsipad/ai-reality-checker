@@ -61,30 +61,54 @@ serve(async (req) => {
       if (paymentIntent.amount === 300 && paymentIntent.status === "succeeded") {
         logStep("Processing $3 payment", { 
           paymentIntentId: paymentIntent.id,
-          customerId: paymentIntent.customer 
+          customerId: paymentIntent.customer,
+          metadata: paymentIntent.metadata
         });
 
-        // Get customer email from Stripe
-        let customerEmail = null;
-        if (paymentIntent.customer) {
-          const customer = await stripe.customers.retrieve(paymentIntent.customer as string);
-          if (customer && !customer.deleted) {
-            customerEmail = customer.email;
+        // First try to get user info from payment intent metadata
+        let userId = paymentIntent.metadata?.user_id;
+        let userEmail = paymentIntent.metadata?.user_email;
+
+        if (!userId || !userEmail) {
+          logStep("No user metadata found, trying to get from Stripe customer");
+          
+          // Fallback to getting customer email from Stripe if metadata is missing
+          if (paymentIntent.customer) {
+            const customer = await stripe.customers.retrieve(paymentIntent.customer as string);
+            if (customer && !customer.deleted) {
+              userEmail = customer.email;
+              logStep("Retrieved customer email from Stripe", { email: userEmail });
+            }
           }
-        }
 
-        if (!customerEmail) {
-          logStep("No customer email found, skipping");
-          return new Response("OK", { status: 200 });
-        }
+          if (!userEmail) {
+            logStep("No customer email found, skipping");
+            return new Response("OK", { status: 200 });
+          }
 
-        logStep("Found customer email", { email: customerEmail });
+          // Try to find user by email in our database
+          const { data: userData, error: userError } = await supabaseClient
+            .from("subscribers")
+            .select("user_id, email")
+            .eq("email", userEmail)
+            .single();
+
+          if (userError || !userData) {
+            logStep("User not found in database", { email: userEmail, error: userError });
+            return new Response("OK", { status: 200 });
+          }
+
+          userId = userData.user_id;
+          logStep("Found user by email", { userId, email: userEmail });
+        } else {
+          logStep("Using metadata", { userId, userEmail });
+        }
 
         // Update the subscriber record to add 15 checks
         const { data: existingSubscriber, error: fetchError } = await supabaseClient
           .from("subscribers")
           .select("remaining_checks")
-          .eq("email", customerEmail)
+          .eq("user_id", userId)
           .single();
 
         if (fetchError && fetchError.code !== 'PGRST116') {
@@ -96,20 +120,22 @@ serve(async (req) => {
         const newChecks = currentChecks + 15;
 
         logStep("Updating checks", { 
+          userId,
+          userEmail,
           currentChecks, 
-          newChecks, 
-          email: customerEmail 
+          newChecks
         });
 
         const { error: updateError } = await supabaseClient
           .from("subscribers")
           .upsert({
-            email: customerEmail,
+            user_id: userId,
+            email: userEmail,
             remaining_checks: newChecks,
             subscription_tier: "pay-per-use",
             subscribed: false,
             updated_at: new Date().toISOString(),
-          }, { onConflict: 'email' });
+          }, { onConflict: 'user_id' });
 
         if (updateError) {
           logStep("Error updating subscriber", { error: updateError });
@@ -117,7 +143,8 @@ serve(async (req) => {
         }
 
         logStep("Successfully added 15 checks", { 
-          email: customerEmail, 
+          userId,
+          userEmail, 
           newTotal: newChecks 
         });
       }
