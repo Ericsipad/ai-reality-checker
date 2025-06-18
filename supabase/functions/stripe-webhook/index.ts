@@ -152,7 +152,7 @@ async function processPayPerUsePayment(
     newChecks
   });
 
-  // Update the subscriber record
+  // Update the subscriber record with the new check count
   const { error: updateError } = await supabaseClient
     .from("subscribers")
     .upsert({
@@ -161,6 +161,7 @@ async function processPayPerUsePayment(
       remaining_checks: newChecks,
       subscription_tier: "pay-per-use",
       subscribed: false,
+      stripe_customer_id: session.customer,
       updated_at: new Date().toISOString(),
     }, { onConflict: 'user_id' });
 
