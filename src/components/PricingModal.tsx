@@ -68,7 +68,7 @@ const PricingModal: React.FC<PricingModalProps> = ({ isOpen, onClose, onPurchase
             </Button>
           </div>
 
-          {/* Monthly - Updated to $12.99 */}
+          {/* Monthly */}
           <div className="border-2 border-blue-500 rounded-lg p-6 text-center">
             <div className="mb-4">
               <h3 className="text-lg font-semibold">Monthly</h3>
@@ -100,13 +100,13 @@ const PricingModal: React.FC<PricingModalProps> = ({ isOpen, onClose, onPurchase
             </Button>
           </div>
 
-          {/* Yearly - Adjusted for new monthly price */}
+          {/* Yearly */}
           <div className="border rounded-lg p-6 text-center">
             <div className="mb-4">
               <h3 className="text-lg font-semibold">Yearly</h3>
-              <div className="text-3xl font-bold text-blue-600 mt-2">$129</div>
+              <div className="text-3xl font-bold text-blue-600 mt-2">$99</div>
               <p className="text-gray-600 text-sm">per year</p>
-              <p className="text-green-600 text-xs font-medium mt-1">Save $27!</p>
+              <p className="text-green-600 text-xs font-medium mt-1">Save $56!</p>
             </div>
             
             <ul className="space-y-2 mb-6 text-sm text-gray-600">

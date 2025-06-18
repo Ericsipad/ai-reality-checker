@@ -84,7 +84,7 @@ serve(async (req) => {
             price_data: {
               currency: "usd",
               product_data: { name: "Monthly Unlimited AI Detection" },
-              unit_amount: 1500, // $15.00 in cents
+              unit_amount: 1299, // $12.99 in cents
               recurring: { interval: "month" },
             },
             quantity: 1,
@@ -101,7 +101,7 @@ serve(async (req) => {
             price_data: {
               currency: "usd",
               product_data: { name: "Yearly Unlimited AI Detection" },
-              unit_amount: 12000, // $120.00 in cents
+              unit_amount: 9900, // $99.00 in cents
               recurring: { interval: "year" },
             },
             quantity: 1,

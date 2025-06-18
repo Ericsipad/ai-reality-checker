@@ -81,13 +81,13 @@ serve(async (req) => {
       hasActiveSub = true;
       subscriptionEnd = new Date(subscription.current_period_end * 1000).toISOString();
       
-      // Determine tier from price - updated for new $12.99 monthly price
+      // Determine tier from price - updated for new prices
       const price = subscription.items.data[0].price;
       const amount = price.unit_amount || 0;
       
-      if (price.recurring?.interval === "month" && amount === 1299) { // Updated to $12.99
+      if (price.recurring?.interval === "month" && amount === 1299) { // $12.99
         subscriptionTier = "monthly";
-      } else if (price.recurring?.interval === "year" && amount === 12900) { // Updated yearly price
+      } else if (price.recurring?.interval === "year" && amount === 9900) { // $99.00
         subscriptionTier = "yearly";
       }
       

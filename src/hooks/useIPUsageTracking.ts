@@ -8,15 +8,15 @@ interface IPUsageData {
 }
 
 export const useIPUsageTracking = () => {
-  const [remainingChecks, setRemainingChecks] = useState(5);
-  const [totalChecks] = useState(5);
+  const [remainingChecks, setRemainingChecks] = useState(3);
+  const [totalChecks] = useState(3);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    checkAndResetMonthly();
+    checkAndResetWeekly();
   }, []);
 
-  const checkAndResetMonthly = () => {
+  const checkAndResetWeekly = () => {
     const stored = localStorage.getItem('aiDetectionUsage_IP');
     const now = new Date();
     
@@ -24,33 +24,32 @@ export const useIPUsageTracking = () => {
       const data: IPUsageData = JSON.parse(stored);
       const lastReset = new Date(data.last_reset);
       
-      // Check if it's been a month since last reset
-      const monthsSinceReset = (now.getFullYear() - lastReset.getFullYear()) * 12 + 
-                               (now.getMonth() - lastReset.getMonth());
+      // Check if it's been a week since last reset
+      const weeksSinceReset = Math.floor((now.getTime() - lastReset.getTime()) / (7 * 24 * 60 * 60 * 1000));
       
-      if (monthsSinceReset >= 1) {
-        // Reset monthly usage
+      if (weeksSinceReset >= 1) {
+        // Reset weekly usage
         const newData: IPUsageData = {
           checks_used: 0,
-          total_checks: 5,
+          total_checks: 3,
           last_reset: now.toISOString()
         };
         localStorage.setItem('aiDetectionUsage_IP', JSON.stringify(newData));
-        setRemainingChecks(5);
+        setRemainingChecks(3);
       } else {
         // Fix: Ensure remaining checks calculation is correct
         const remaining = Math.max(0, data.total_checks - data.checks_used);
         setRemainingChecks(remaining);
       }
     } else {
-      // First time user - initialize with full 5 checks
+      // First time user - initialize with full 3 checks
       const newData: IPUsageData = {
         checks_used: 0,
-        total_checks: 5,
+        total_checks: 3,
         last_reset: now.toISOString()
       };
       localStorage.setItem('aiDetectionUsage_IP', JSON.stringify(newData));
-      setRemainingChecks(5);
+      setRemainingChecks(3);
     }
     setLoading(false);
   };
