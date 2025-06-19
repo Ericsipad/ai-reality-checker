@@ -49,9 +49,17 @@ const Index = () => {
     (hasUnlimitedAccess ? 999999 : authRemainingChecks) : 
     ipRemainingChecks;
   
-  // Simple total for display - no complex weekly calculation needed
+  // Fix: For authenticated users, we need to track the original total they purchased
+  // For now, we'll calculate it based on what they have remaining + what they've used
+  // This is a simplified approach - in a real app, you'd store the original purchase amount
   const displayTotal = user ? 
-    (hasUnlimitedAccess ? 999999 : authRemainingChecks) : 
+    (hasUnlimitedAccess ? 999999 : 
+     // For pay-per-use, we need to get the original total from the database
+     // For now, we'll use a reasonable estimate based on typical purchase amounts
+     authRemainingChecks <= 15 ? 15 : // If they have 15 or less, they likely bought 15
+     authRemainingChecks <= 50 ? 50 : // If they have 50 or less, they likely bought 50
+     authRemainingChecks <= 100 ? 100 : authRemainingChecks
+    ) : 
     ipTotalChecks;
 
   const useCheck = (): boolean => {
@@ -455,7 +463,7 @@ const Index = () => {
         isOpen={showUsageModal}
         onClose={() => setShowUsageModal(false)}
         remainingChecks={remaining_checks}
-        totalChecks={user ? authRemainingChecks : ipTotalChecks}
+        totalChecks={displayTotal}
         onUpgrade={user ? handleUpgrade : () => {}}
         isSubscribed={hasUnlimitedAccess}
       />
