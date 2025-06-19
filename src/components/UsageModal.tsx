@@ -31,13 +31,11 @@ const UsageModal: React.FC<UsageModalProps> = ({
 }) => {
   const { user } = useAuth();
   
-  // For authenticated users, we'll use a simple approach:
-  // Show their current remaining checks and don't try to calculate weekly usage
-  const displayTotal = totalChecks;
-  const usedChecks = user ? 0 : (totalChecks - remainingChecks); // For auth users, just show remaining
-  const progressValue = user ? 
-    ((displayTotal - remainingChecks) / displayTotal) * 100 : // Auth users: show progress based on remaining
-    (usedChecks / displayTotal) * 100; // Non-auth users: show traditional used/total
+  // For authenticated pay-per-use users, totalChecks represents their purchased checks
+  // remainingChecks is what they have left
+  // So used = totalChecks - remainingChecks
+  const usedChecks = user ? (totalChecks - remainingChecks) : (totalChecks - remainingChecks);
+  const progressValue = totalChecks > 0 ? (usedChecks / totalChecks) * 100 : 0;
 
   // Don't render the modal at all for subscribed users
   if (isSubscribed) {
@@ -71,8 +69,8 @@ const UsageModal: React.FC<UsageModalProps> = ({
           
           <div className="space-y-2">
             <div className="flex justify-between text-sm text-gray-600">
-              <span>Used: {user ? (displayTotal - remainingChecks) : usedChecks}</span>
-              <span>Started with: {displayTotal}</span>
+              <span>Used: {usedChecks}</span>
+              <span>Total: {totalChecks}</span>
             </div>
             <Progress value={progressValue} className="h-3" />
           </div>
