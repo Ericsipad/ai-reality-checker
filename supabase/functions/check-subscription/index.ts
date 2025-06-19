@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@14.21.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
@@ -95,7 +96,7 @@ serve(async (req) => {
 
     // Check for one-time payments (pay-per-use) - only if no active subscription
     if (!hasActiveSub) {
-      // First, get current subscriber record to see existing checks
+      // Get current subscriber record to see existing checks
       const { data: existingSubscriber } = await supabaseClient
         .from("subscribers")
         .select("remaining_checks")
@@ -105,34 +106,16 @@ serve(async (req) => {
       const currentChecks = existingSubscriber?.remaining_checks || 0;
       logStep("Current checks from database", { currentChecks });
 
-      // Get all successful payment intents for this customer
-      const paymentIntents = await stripe.paymentIntents.list({
-        customer: customerId,
-        limit: 100,
-      });
-
-      // Calculate total checks purchased from successful $3 payments
-      const successfulPayments = paymentIntents.data.filter(payment => 
-        payment.status === "succeeded" && payment.amount === 300
-      );
-      
-      const totalChecksPurchased = successfulPayments.length * 15; // 15 checks per $3 payment
-      logStep("Pay-per-use payments found", { 
-        paymentCount: successfulPayments.length, 
-        totalChecksPurchased,
-        currentChecks
-      });
-
-      if (totalChecksPurchased > 0) {
-        // The remaining checks should be the current checks from database
-        // This ensures we keep the user's current check count as updated by the webhook
-        remainingChecks = Math.max(currentChecks, totalChecksPurchased);
+      // For pay-per-use users, we should PRESERVE their current remaining_checks
+      // The webhook handles adding new checks when they purchase
+      if (existingSubscriber) {
+        remainingChecks = currentChecks;
         subscriptionTier = "pay-per-use";
-        
-        logStep("Setting remaining checks", { 
-          finalRemainingChecks: remainingChecks,
-          reason: currentChecks >= totalChecksPurchased ? "using current checks" : "using total purchased"
-        });
+        logStep("Preserving existing remaining checks for pay-per-use user", { remainingChecks });
+      } else {
+        // New user with no existing record - give them default free checks
+        remainingChecks = 3; // 3 free checks per week for new users
+        logStep("New pay-per-use user, setting default free checks", { remainingChecks });
       }
     }
 
