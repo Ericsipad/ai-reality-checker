@@ -19,7 +19,6 @@ interface UsageModalProps {
   totalChecks: number;
   onUpgrade?: () => void;
   isSubscribed?: boolean;
-  weeklyTotal?: number; // New prop for tracking weekly usage properly
 }
 
 const UsageModal: React.FC<UsageModalProps> = ({ 
@@ -28,15 +27,17 @@ const UsageModal: React.FC<UsageModalProps> = ({
   remainingChecks, 
   totalChecks,
   onUpgrade,
-  isSubscribed = false,
-  weeklyTotal
+  isSubscribed = false
 }) => {
   const { user } = useAuth();
   
-  // Use weeklyTotal if provided (for authenticated users), otherwise use totalChecks
-  const displayTotal = weeklyTotal || totalChecks;
-  const usedChecks = displayTotal - remainingChecks;
-  const progressValue = (usedChecks / displayTotal) * 100;
+  // For authenticated users, we'll use a simple approach:
+  // Show their current remaining checks and don't try to calculate weekly usage
+  const displayTotal = totalChecks;
+  const usedChecks = user ? 0 : (totalChecks - remainingChecks); // For auth users, just show remaining
+  const progressValue = user ? 
+    ((displayTotal - remainingChecks) / displayTotal) * 100 : // Auth users: show progress based on remaining
+    (usedChecks / displayTotal) * 100; // Non-auth users: show traditional used/total
 
   // Don't render the modal at all for subscribed users
   if (isSubscribed) {
@@ -53,10 +54,10 @@ const UsageModal: React.FC<UsageModalProps> = ({
       <DialogContent className="sm:max-w-md bg-white">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold text-center">
-            Weekly Usage
+            {user ? 'Check Balance' : 'Weekly Usage'}
           </DialogTitle>
           <DialogDescription className="text-center text-gray-600">
-            {user ? 'Track your free AI detection checks' : 'Free checks (no signup required)'}
+            {user ? 'Your current AI detection checks' : 'Free checks (no signup required)'}
           </DialogDescription>
         </DialogHeader>
         
@@ -65,13 +66,13 @@ const UsageModal: React.FC<UsageModalProps> = ({
             <div className="text-4xl font-bold text-blue-600 mb-2">
               {remainingChecks}
             </div>
-            <p className="text-gray-600">checks remaining this week</p>
+            <p className="text-gray-600">checks remaining</p>
           </div>
           
           <div className="space-y-2">
             <div className="flex justify-between text-sm text-gray-600">
-              <span>Used: {usedChecks}</span>
-              <span>Total: {displayTotal}</span>
+              <span>Used: {user ? (displayTotal - remainingChecks) : usedChecks}</span>
+              <span>Started with: {displayTotal}</span>
             </div>
             <Progress value={progressValue} className="h-3" />
           </div>
@@ -79,9 +80,9 @@ const UsageModal: React.FC<UsageModalProps> = ({
           {remainingChecks === 0 && (
             <div className="bg-red-50 border border-red-200 rounded-lg p-4">
               <p className="text-red-600 text-sm text-center">
-                You've used all your free checks this week. 
+                You've used all your {user ? '' : 'free'} checks. 
                 {user 
-                  ? " Upgrade to continue detecting AI content!"
+                  ? " Purchase more to continue detecting AI content!"
                   : " Sign up to get more checks and premium features!"
                 }
               </p>
@@ -101,7 +102,7 @@ const UsageModal: React.FC<UsageModalProps> = ({
                 onClick={handleUpgrade}
                 className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
               >
-                Upgrade
+                Buy More
               </Button>
             ) : (
               <Button 

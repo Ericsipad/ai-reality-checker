@@ -49,24 +49,7 @@ const Index = () => {
     (hasUnlimitedAccess ? 999999 : authRemainingChecks) : 
     ipRemainingChecks;
   
-  // Calculate weekly total for usage tracking (different from display total)
-  let weeklyTotal;
-  if (user && !hasUnlimitedAccess) {
-    // For authenticated pay-per-use users, we need to calculate their weekly starting total
-    // This should be 3 (free weekly) + any purchased checks they had at the start of the week
-    // For now, we'll estimate this based on their current remaining checks
-    // If they have more than 3 remaining, they must have purchased some
-    if (authRemainingChecks > 3) {
-      // They have purchased checks, so weekly total includes purchased amount
-      // Estimate: current remaining + already used (assuming they started with current + some used amount)
-      weeklyTotal = Math.max(authRemainingChecks + 5, 18); // Rough estimate, should be improved with better tracking
-    } else {
-      // They're using free checks only
-      weeklyTotal = 3;
-    }
-  }
-
-  // Simple total for display in buttons (not for usage bar)
+  // Simple total for display - no complex weekly calculation needed
   const displayTotal = user ? 
     (hasUnlimitedAccess ? 999999 : authRemainingChecks) : 
     ipTotalChecks;
@@ -472,8 +455,7 @@ const Index = () => {
         isOpen={showUsageModal}
         onClose={() => setShowUsageModal(false)}
         remainingChecks={remaining_checks}
-        totalChecks={user ? ipTotalChecks : ipTotalChecks} // Use simple total for non-auth users
-        weeklyTotal={weeklyTotal} // Pass weekly total for proper usage calculation
+        totalChecks={user ? authRemainingChecks : ipTotalChecks}
         onUpgrade={user ? handleUpgrade : () => {}}
         isSubscribed={hasUnlimitedAccess}
       />
