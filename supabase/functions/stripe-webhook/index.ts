@@ -125,7 +125,7 @@ async function processOneTimePayment(
     // Method 1: Try metadata first
     if (userId && userEmail) {
       logStep("Using metadata for user identification", { userId, userEmail });
-      await creditChecksToUser(supabaseClient, userId, userEmail, 15, logStep);
+      await addChecksToUser(supabaseClient, userId, userEmail, 15, logStep);
       return;
     }
 
@@ -149,7 +149,7 @@ async function processOneTimePayment(
             if (!userError && userData) {
               userId = userData.user_id;
               logStep("Found user by email lookup", { userId, email: userEmail });
-              await creditChecksToUser(supabaseClient, userId, userEmail, 15, logStep);
+              await addChecksToUser(supabaseClient, userId, userEmail, 15, logStep);
               return;
             }
           }
@@ -185,7 +185,7 @@ async function processOneTimePayment(
           lastActive: mostRecentUser.updated_at
         });
         
-        await creditChecksToUser(supabaseClient, mostRecentUser.user_id, mostRecentUser.email, 15, logStep);
+        await addChecksToUser(supabaseClient, mostRecentUser.user_id, mostRecentUser.email, 15, logStep);
         return;
       }
     }
@@ -219,7 +219,7 @@ async function processPaymentIntent(
     // Method 1: Try metadata first
     if (userId && userEmail) {
       logStep("Using metadata for user identification", { userId, userEmail });
-      await creditChecksToUser(supabaseClient, userId, userEmail, 15, logStep);
+      await addChecksToUser(supabaseClient, userId, userEmail, 15, logStep);
       return;
     }
 
@@ -243,7 +243,7 @@ async function processPaymentIntent(
             if (!userError && userData) {
               userId = userData.user_id;
               logStep("Found user by email lookup", { userId, email: userEmail });
-              await creditChecksToUser(supabaseClient, userId, userEmail, 15, logStep);
+              await addChecksToUser(supabaseClient, userId, userEmail, 15, logStep);
               return;
             }
           }
@@ -274,7 +274,7 @@ async function processPaymentIntent(
           lastActive: mostRecentUser.updated_at
         });
         
-        await creditChecksToUser(supabaseClient, mostRecentUser.user_id, mostRecentUser.email, 15, logStep);
+        await addChecksToUser(supabaseClient, mostRecentUser.user_id, mostRecentUser.email, 15, logStep);
         return;
       }
     }
@@ -292,7 +292,8 @@ async function processPaymentIntent(
   }
 }
 
-async function creditChecksToUser(
+// Renamed from creditChecksToUser to addChecksToUser to be clearer about the behavior
+async function addChecksToUser(
   supabaseClient: any,
   userId: string,
   userEmail: string,
@@ -300,7 +301,7 @@ async function creditChecksToUser(
   logStep: Function
 ) {
   try {
-    logStep("About to credit checks", { userId, userEmail, checksToAdd });
+    logStep("About to add checks to user", { userId, userEmail, checksToAdd });
 
     // Get current subscriber record
     const { data: existingSubscriber, error: fetchError } = await supabaseClient
@@ -315,9 +316,9 @@ async function creditChecksToUser(
     }
 
     const currentChecks = existingSubscriber?.remaining_checks || 0;
-    const newChecks = currentChecks + checksToAdd;
+    const newChecks = currentChecks + checksToAdd; // ADD instead of replace
 
-    logStep("Crediting checks", { 
+    logStep("Adding checks to existing total", { 
       userId,
       userEmail,
       currentChecks, 
@@ -342,10 +343,11 @@ async function creditChecksToUser(
       throw updateError;
     }
 
-    logStep("Successfully credited checks", { 
+    logStep("Successfully added checks to user", { 
       userId,
       userEmail, 
-      finalCheckCount: newChecks
+      finalCheckCount: newChecks,
+      checksAdded: checksToAdd
     });
 
     // Verify the update worked by checking the database
@@ -365,7 +367,7 @@ async function creditChecksToUser(
     }
 
   } catch (error) {
-    logStep("ERROR in creditChecksToUser", { error: error.message });
+    logStep("ERROR in addChecksToUser", { error: error.message });
     throw error;
   }
 }
