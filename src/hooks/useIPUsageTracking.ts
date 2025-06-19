@@ -9,7 +9,7 @@ interface IPUsageData {
 
 export const useIPUsageTracking = () => {
   const [remainingChecks, setRemainingChecks] = useState(3);
-  const [totalChecks] = useState(3);
+  const [totalChecks] = useState(3); // Changed from variable to fixed 3
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -29,7 +29,7 @@ export const useIPUsageTracking = () => {
         const weeksSinceReset = Math.floor((now.getTime() - lastReset.getTime()) / (7 * 24 * 60 * 60 * 1000));
         
         if (weeksSinceReset >= 1) {
-          // Reset weekly usage
+          // Reset weekly usage - always reset to 3 checks
           const newData: IPUsageData = {
             checks_used: 0,
             total_checks: 3,
@@ -38,8 +38,8 @@ export const useIPUsageTracking = () => {
           localStorage.setItem('aiDetectionUsage_IP', JSON.stringify(newData));
           setRemainingChecks(3);
         } else {
-          // Calculate remaining checks correctly
-          const remaining = Math.max(0, data.total_checks - data.checks_used);
+          // Calculate remaining checks - ensure it's always based on 3 total
+          const remaining = Math.max(0, 3 - data.checks_used);
           setRemainingChecks(remaining);
         }
       } catch (error) {
@@ -75,12 +75,13 @@ export const useIPUsageTracking = () => {
         const data: IPUsageData = JSON.parse(stored);
         const newData: IPUsageData = {
           ...data,
-          checks_used: data.checks_used + 1
+          checks_used: data.checks_used + 1,
+          total_checks: 3 // Ensure total_checks is always 3
         };
         localStorage.setItem('aiDetectionUsage_IP', JSON.stringify(newData));
         
         // Update remaining checks after successful storage
-        const newRemaining = Math.max(0, newData.total_checks - newData.checks_used);
+        const newRemaining = Math.max(0, 3 - newData.checks_used);
         setRemainingChecks(newRemaining);
         return true;
       } catch (error) {
@@ -93,7 +94,7 @@ export const useIPUsageTracking = () => {
 
   return {
     remainingChecks,
-    totalChecks,
+    totalChecks: 3, // Always return 3 as total
     useCheck,
     loading
   };
