@@ -38,7 +38,7 @@ serve(async (req) => {
       throw new Error("No Stripe signature found");
     }
 
-    // Verify the webhook signature using the async method
+    // Verify the webhook signature
     let event;
     try {
       event = await stripe.webhooks.constructEventAsync(
@@ -53,7 +53,7 @@ serve(async (req) => {
 
     logStep("Event received", { type: event.type, id: event.id });
 
-    // Handle checkout.session.completed for $3 pay-per-use payments
+    // Handle successful one-time payments
     if (event.type === "checkout.session.completed") {
       const session = event.data.object as Stripe.Checkout.Session;
       
@@ -62,27 +62,39 @@ serve(async (req) => {
         amountTotal: session.amount_total,
         paymentStatus: session.payment_status,
         mode: session.mode,
+        customerId: session.customer,
         metadata: session.metadata
       });
 
-      // Check if this is a $3 payment (300 cents) and mode is payment
+      // Check if this is a $3 one-time payment (300 cents)
       if (session.amount_total === 300 && session.mode === "payment" && session.payment_status === "paid") {
-        logStep("Processing $3 one-time payment", { 
-          sessionId: session.id,
-          customerId: session.customer,
-          metadata: session.metadata
-        });
-
-        await processPayPerUsePayment(stripe, supabaseClient, session, logStep);
+        logStep("Processing $3 one-time payment for 15 checks");
+        await processOneTimePayment(stripe, supabaseClient, session, logStep);
       } else {
-        logStep("Session does not match pay-per-use criteria", {
+        logStep("Session does not match $3 payment criteria", {
           amountTotal: session.amount_total,
           mode: session.mode,
           paymentStatus: session.payment_status
         });
       }
-    } else {
-      logStep("Event type not handled", { eventType: event.type });
+    }
+
+    // Handle successful payment intents (additional safety net)
+    if (event.type === "payment_intent.succeeded") {
+      const paymentIntent = event.data.object as Stripe.PaymentIntent;
+      
+      logStep("Processing payment intent", {
+        paymentIntentId: paymentIntent.id,
+        amount: paymentIntent.amount,
+        customerId: paymentIntent.customer,
+        metadata: paymentIntent.metadata
+      });
+
+      // Check if this is a $3 payment (300 cents)
+      if (paymentIntent.amount === 300) {
+        logStep("Processing $3 payment intent for 15 checks");
+        await processPaymentIntent(stripe, supabaseClient, paymentIntent, logStep);
+      }
     }
 
     return new Response("OK", { status: 200 });
@@ -96,116 +108,193 @@ serve(async (req) => {
   }
 });
 
-async function processPayPerUsePayment(
+async function processOneTimePayment(
   stripe: Stripe, 
   supabaseClient: any, 
   session: Stripe.Checkout.Session,
   logStep: Function
 ) {
-  // Get user info from metadata first
-  let userId = session.metadata?.user_id;
-  let userEmail = session.metadata?.user_email;
+  try {
+    // Get user info from metadata first
+    let userId = session.metadata?.user_id;
+    let userEmail = session.metadata?.user_email;
 
-  logStep("Starting payment processing", { userId, userEmail, customerId: session.customer });
+    logStep("Starting one-time payment processing", { userId, userEmail, customerId: session.customer });
 
-  // If no metadata, try to get email from Stripe customer
-  if (!userEmail && session.customer) {
-    try {
-      const customer = await stripe.customers.retrieve(session.customer as string);
-      if (customer && !customer.deleted) {
-        userEmail = customer.email;
-        logStep("Retrieved customer email from Stripe", { email: userEmail });
+    // If no metadata, try to get email from Stripe customer
+    if (!userEmail && session.customer) {
+      try {
+        const customer = await stripe.customers.retrieve(session.customer as string);
+        if (customer && !customer.deleted) {
+          userEmail = customer.email;
+          logStep("Retrieved customer email from Stripe", { email: userEmail });
+        }
+      } catch (err) {
+        logStep("Error retrieving customer from Stripe", { error: err.message });
       }
-    } catch (err) {
-      logStep("Error retrieving customer from Stripe", { error: err.message });
     }
-  }
 
-  if (!userEmail) {
-    logStep("No customer email found, cannot process payment");
-    return;
-  }
-
-  // If no userId in metadata, look up user by email in our database
-  if (!userId) {
-    const { data: userData, error: userError } = await supabaseClient
-      .from("subscribers")
-      .select("user_id, email")
-      .eq("email", userEmail)
-      .single();
-
-    if (userError || !userData) {
-      logStep("User not found in database by email", { email: userEmail, error: userError });
+    if (!userEmail) {
+      logStep("ERROR: No customer email found, cannot process payment");
       return;
     }
 
-    userId = userData.user_id;
-    logStep("Found user by email lookup", { userId, email: userEmail });
+    // If no userId in metadata, look up user by email in our database
+    if (!userId) {
+      const { data: userData, error: userError } = await supabaseClient
+        .from("subscribers")
+        .select("user_id, email")
+        .eq("email", userEmail)
+        .single();
+
+      if (userError || !userData) {
+        logStep("ERROR: User not found in database by email", { email: userEmail, error: userError });
+        return;
+      }
+
+      userId = userData.user_id;
+      logStep("Found user by email lookup", { userId, email: userEmail });
+    }
+
+    // Credit 15 checks to the user's account
+    await creditChecksToUser(supabaseClient, userId, userEmail, 15, logStep);
+
+  } catch (error) {
+    logStep("ERROR in processOneTimePayment", { error: error.message });
+    throw error;
   }
+}
 
-  // Now we have both userId and userEmail, proceed with crediting checks
-  logStep("About to credit checks", { userId, userEmail });
+async function processPaymentIntent(
+  stripe: Stripe,
+  supabaseClient: any,
+  paymentIntent: Stripe.PaymentIntent,
+  logStep: Function
+) {
+  try {
+    let userId = paymentIntent.metadata?.user_id;
+    let userEmail = paymentIntent.metadata?.user_email;
 
-  // Get current subscriber record
-  const { data: existingSubscriber, error: fetchError } = await supabaseClient
-    .from("subscribers")
-    .select("remaining_checks")
-    .eq("user_id", userId)
-    .single();
+    logStep("Starting payment intent processing", { userId, userEmail, customerId: paymentIntent.customer });
 
-  if (fetchError && fetchError.code !== 'PGRST116') {
-    logStep("Error fetching subscriber", { error: fetchError });
-    throw fetchError;
+    // If no metadata, try to get email from Stripe customer
+    if (!userEmail && paymentIntent.customer) {
+      try {
+        const customer = await stripe.customers.retrieve(paymentIntent.customer as string);
+        if (customer && !customer.deleted) {
+          userEmail = customer.email;
+          logStep("Retrieved customer email from Stripe", { email: userEmail });
+        }
+      } catch (err) {
+        logStep("Error retrieving customer from Stripe", { error: err.message });
+      }
+    }
+
+    if (!userEmail) {
+      logStep("ERROR: No customer email found, cannot process payment intent");
+      return;
+    }
+
+    // If no userId in metadata, look up user by email in our database
+    if (!userId) {
+      const { data: userData, error: userError } = await supabaseClient
+        .from("subscribers")
+        .select("user_id, email")
+        .eq("email", userEmail)
+        .single();
+
+      if (userError || !userData) {
+        logStep("ERROR: User not found in database by email", { email: userEmail, error: userError });
+        return;
+      }
+
+      userId = userData.user_id;
+      logStep("Found user by email lookup", { userId, email: userEmail });
+    }
+
+    // Credit 15 checks to the user's account
+    await creditChecksToUser(supabaseClient, userId, userEmail, 15, logStep);
+
+  } catch (error) {
+    logStep("ERROR in processPaymentIntent", { error: error.message });
+    throw error;
   }
+}
 
-  const currentChecks = existingSubscriber?.remaining_checks || 0;
-  const newChecks = currentChecks + 15;
+async function creditChecksToUser(
+  supabaseClient: any,
+  userId: string,
+  userEmail: string,
+  checksToAdd: number,
+  logStep: Function
+) {
+  try {
+    logStep("About to credit checks", { userId, userEmail, checksToAdd });
 
-  logStep("Crediting 15 checks", { 
-    userId,
-    userEmail,
-    currentChecks, 
-    newChecks
-  });
+    // Get current subscriber record
+    const { data: existingSubscriber, error: fetchError } = await supabaseClient
+      .from("subscribers")
+      .select("remaining_checks")
+      .eq("user_id", userId)
+      .single();
 
-  // Update the subscriber record with the new check count
-  const { error: updateError } = await supabaseClient
-    .from("subscribers")
-    .upsert({
-      user_id: userId,
-      email: userEmail,
-      remaining_checks: newChecks,
-      subscription_tier: "pay-per-use",
-      subscribed: false,
-      stripe_customer_id: session.customer,
-      updated_at: new Date().toISOString(),
-    }, { onConflict: 'user_id' });
+    if (fetchError && fetchError.code !== 'PGRST116') {
+      logStep("Error fetching subscriber", { error: fetchError });
+      throw fetchError;
+    }
 
-  if (updateError) {
-    logStep("Error updating subscriber", { error: updateError });
-    throw updateError;
-  }
+    const currentChecks = existingSubscriber?.remaining_checks || 0;
+    const newChecks = currentChecks + checksToAdd;
 
-  logStep("Successfully credited 15 checks", { 
-    userId,
-    userEmail, 
-    finalCheckCount: newChecks,
-    stripeSessionId: session.id
-  });
-
-  // Verify the update worked by checking the database
-  const { data: verifyData, error: verifyError } = await supabaseClient
-    .from("subscribers")
-    .select("remaining_checks")
-    .eq("user_id", userId)
-    .single();
-
-  if (verifyError) {
-    logStep("Error verifying update", { error: verifyError });
-  } else {
-    logStep("Database verification", { 
-      updatedChecks: verifyData.remaining_checks,
-      updateSuccessful: verifyData.remaining_checks === newChecks
+    logStep("Crediting checks", { 
+      userId,
+      userEmail,
+      currentChecks, 
+      checksToAdd,
+      newChecks
     });
+
+    // Update the subscriber record with the new check count
+    const { error: updateError } = await supabaseClient
+      .from("subscribers")
+      .upsert({
+        user_id: userId,
+        email: userEmail,
+        remaining_checks: newChecks,
+        subscription_tier: "pay-per-use",
+        subscribed: false,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'user_id' });
+
+    if (updateError) {
+      logStep("Error updating subscriber", { error: updateError });
+      throw updateError;
+    }
+
+    logStep("Successfully credited checks", { 
+      userId,
+      userEmail, 
+      finalCheckCount: newChecks
+    });
+
+    // Verify the update worked by checking the database
+    const { data: verifyData, error: verifyError } = await supabaseClient
+      .from("subscribers")
+      .select("remaining_checks")
+      .eq("user_id", userId)
+      .single();
+
+    if (verifyError) {
+      logStep("Error verifying update", { error: verifyError });
+    } else {
+      logStep("Database verification successful", { 
+        updatedChecks: verifyData.remaining_checks,
+        updateSuccessful: verifyData.remaining_checks === newChecks
+      });
+    }
+
+  } catch (error) {
+    logStep("ERROR in creditChecksToUser", { error: error.message });
+    throw error;
   }
 }
