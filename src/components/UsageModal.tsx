@@ -19,6 +19,7 @@ interface UsageModalProps {
   totalChecks: number;
   onUpgrade?: () => void;
   isSubscribed?: boolean;
+  weeklyTotal?: number; // New prop for tracking weekly usage properly
 }
 
 const UsageModal: React.FC<UsageModalProps> = ({ 
@@ -27,11 +28,15 @@ const UsageModal: React.FC<UsageModalProps> = ({
   remainingChecks, 
   totalChecks,
   onUpgrade,
-  isSubscribed = false
+  isSubscribed = false,
+  weeklyTotal
 }) => {
   const { user } = useAuth();
-  const usedChecks = totalChecks - remainingChecks;
-  const progressValue = (usedChecks / totalChecks) * 100;
+  
+  // Use weeklyTotal if provided (for authenticated users), otherwise use totalChecks
+  const displayTotal = weeklyTotal || totalChecks;
+  const usedChecks = displayTotal - remainingChecks;
+  const progressValue = (usedChecks / displayTotal) * 100;
 
   // Don't render the modal at all for subscribed users
   if (isSubscribed) {
@@ -66,7 +71,7 @@ const UsageModal: React.FC<UsageModalProps> = ({
           <div className="space-y-2">
             <div className="flex justify-between text-sm text-gray-600">
               <span>Used: {usedChecks}</span>
-              <span>Total: {totalChecks}</span>
+              <span>Total: {displayTotal}</span>
             </div>
             <Progress value={progressValue} className="h-3" />
           </div>
