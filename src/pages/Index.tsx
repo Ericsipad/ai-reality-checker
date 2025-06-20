@@ -409,7 +409,7 @@ const Index = () => {
                   size="sm"
                 >
                   <Link to="/auth?mode=signup">
-                    Sign up for consistent tracking & features
+                    Sign up for more checks
                   </Link>
                 </Button>
               )}
