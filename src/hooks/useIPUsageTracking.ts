@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 
 interface IPUsageData {
@@ -13,10 +12,10 @@ const getClientIdentifier = (): string => {
   const userAgent = navigator.userAgent;
   const language = navigator.language;
   const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  const screen = `${screen.width}x${screen.height}`;
+  const screenSize = `${window.screen.width}x${window.screen.height}`;
   
   // Create a simple hash-like identifier
-  return btoa(`${userAgent}-${language}-${timezone}-${screen}`).slice(0, 16);
+  return btoa(`${userAgent}-${language}-${timezone}-${screenSize}`).slice(0, 16);
 };
 
 export const useIPUsageTracking = () => {

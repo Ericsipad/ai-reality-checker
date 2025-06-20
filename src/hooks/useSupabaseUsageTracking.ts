@@ -73,8 +73,8 @@ export const useSupabaseUsageTracking = () => {
       const userAgent = navigator.userAgent;
       const language = navigator.language;
       const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-      const screen = `${screen.width}x${screen.height}`;
-      const clientId = btoa(`${userAgent}-${language}-${timezone}-${screen}`).slice(0, 16);
+      const screenSize = `${window.screen.width}x${window.screen.height}`;
+      const clientId = btoa(`${userAgent}-${language}-${timezone}-${screenSize}`).slice(0, 16);
       const storageKey = `aiDetectionUsage_${clientId}`;
       const stored = localStorage.getItem(storageKey);
       
