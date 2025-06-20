@@ -7,6 +7,7 @@ import UsageModal from '@/components/UsageModal';
 import ResultModal from '@/components/ResultModal';
 import PricingModal from '@/components/PricingModal';
 import AddToHomeScreenPrompt from '@/components/AddToHomeScreenPrompt';
+import CookieConsent from '@/components/CookieConsent';
 import { useAuth } from '@/contexts/AuthContext';
 import { useStripeSubscription } from '@/hooks/useStripeSubscription';
 import { useIPUsageTracking } from '@/hooks/useIPUsageTracking';
@@ -448,6 +449,14 @@ const Index = () => {
 
         {/* Footer */}
         <div className="text-center mt-12 sm:mt-16">
+          <div className="flex flex-col sm:flex-row justify-center items-center space-y-2 sm:space-y-0 sm:space-x-4 mb-2">
+            <Link 
+              to="/privacy" 
+              className="text-white/60 hover:text-white/80 text-sm underline transition-colors"
+            >
+              Privacy Policy
+            </Link>
+          </div>
           <p className="text-white/60 text-sm">
             © 2025 A Vobius Labs Product
           </p>
@@ -483,6 +492,9 @@ const Index = () => {
       {showAddToHomeScreen && (
         <AddToHomeScreenPrompt onClose={handleCloseAddToHomeScreen} />
       )}
+
+      {/* Cookie Consent Banner */}
+      <CookieConsent />
     </div>
   );
 };
