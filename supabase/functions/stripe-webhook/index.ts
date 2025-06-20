@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@14.21.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
@@ -11,6 +12,9 @@ const logStep = (step: string, details?: any) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
   console.log(`[STRIPE-WEBHOOK] ${step}${detailsStr}`);
 };
+
+// Store processed webhook IDs to prevent duplicate processing
+const processedWebhooks = new Set<string>();
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -50,6 +54,12 @@ serve(async (req) => {
       return new Response(`Webhook Error: ${err.message}`, { status: 400 });
     }
 
+    // Prevent duplicate processing
+    if (processedWebhooks.has(event.id)) {
+      logStep("Webhook already processed", { eventId: event.id });
+      return new Response("OK - Already processed", { status: 200 });
+    }
+
     logStep("Event received", { type: event.type, id: event.id });
 
     // Handle successful one-time payments
@@ -69,6 +79,7 @@ serve(async (req) => {
       if (session.amount_total === 300 && session.mode === "payment" && session.payment_status === "paid") {
         logStep("Processing $3 one-time payment for 15 checks");
         await processOneTimePayment(stripe, supabaseClient, session, logStep);
+        processedWebhooks.add(event.id);
       } else {
         logStep("Session does not match $3 payment criteria", {
           amountTotal: session.amount_total,
@@ -93,6 +104,7 @@ serve(async (req) => {
       if (paymentIntent.amount === 300) {
         logStep("Processing $3 payment intent for 15 checks");
         await processPaymentIntent(stripe, supabaseClient, paymentIntent, logStep);
+        processedWebhooks.add(event.id);
       }
     }
 
@@ -114,87 +126,40 @@ async function processOneTimePayment(
   logStep: Function
 ) {
   try {
-    // Get user info from metadata first
-    let userId = session.metadata?.user_id;
-    let userEmail = session.metadata?.user_email;
-    const clientIP = session.metadata?.client_ip;
+    // SECURITY: Only use user_id and email from metadata - no fallback logic
+    const userId = session.metadata?.user_id;
+    const userEmail = session.metadata?.user_email;
 
-    logStep("Starting one-time payment processing", { userId, userEmail, customerId: session.customer, clientIP });
+    logStep("Starting secure one-time payment processing", { userId, userEmail });
 
-    // Method 1: Try metadata first
-    if (userId && userEmail) {
-      logStep("Using metadata for user identification", { userId, userEmail });
-      await addChecksToUser(supabaseClient, userId, userEmail, 15, logStep);
-      return;
+    // SECURITY: Require both user_id and email from metadata
+    if (!userId || !userEmail) {
+      logStep("SECURITY ERROR: Missing required user identification in metadata", { 
+        sessionId: session.id,
+        hasUserId: !!userId,
+        hasUserEmail: !!userEmail
+      });
+      throw new Error("Payment processing failed: insufficient user identification");
     }
 
-    // Method 2: Try to get email from Stripe customer
-    if (!userEmail && session.customer) {
-      try {
-        const customer = await stripe.customers.retrieve(session.customer as string);
-        if (customer && !customer.deleted) {
-          userEmail = customer.email;
-          userId = customer.metadata?.user_id;
-          logStep("Retrieved customer info from Stripe", { email: userEmail, userId });
-          
-          if (userEmail) {
-            // Look up user by email
-            const { data: userData, error: userError } = await supabaseClient
-              .from("subscribers")
-              .select("user_id, email")
-              .eq("email", userEmail)
-              .single();
+    // Verify user exists in our system
+    const { data: userData, error: userError } = await supabaseClient
+      .from("subscribers")
+      .select("user_id, email")
+      .eq("user_id", userId)
+      .eq("email", userEmail)
+      .single();
 
-            if (!userError && userData) {
-              userId = userData.user_id;
-              logStep("Found user by email lookup", { userId, email: userEmail });
-              await addChecksToUser(supabaseClient, userId, userEmail, 15, logStep);
-              return;
-            }
-          }
-        }
-      } catch (err) {
-        logStep("Error retrieving customer from Stripe", { error: err.message });
-      }
+    if (userError || !userData) {
+      logStep("SECURITY ERROR: User not found in system", { 
+        userId, 
+        userEmail, 
+        error: userError?.message 
+      });
+      throw new Error("Payment processing failed: user verification failed");
     }
 
-    // Method 3: Use IP address to find recent user
-    if (clientIP && clientIP !== "unknown") {
-      logStep("Attempting IP-based user lookup", { clientIP });
-      
-      // Look for users who have been active recently (within last hour)
-      // This is a fallback method and not perfect, but better than nothing
-      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-      
-      // We'll look for recent subscribers who might match
-      const { data: recentUsers, error: recentError } = await supabaseClient
-        .from("subscribers")
-        .select("user_id, email, updated_at")
-        .gte("updated_at", oneHourAgo)
-        .order("updated_at", { ascending: false })
-        .limit(5);
-
-      if (!recentError && recentUsers && recentUsers.length > 0) {
-        // For now, we'll credit the most recently active user
-        // This is not ideal but provides a fallback
-        const mostRecentUser = recentUsers[0];
-        logStep("Using most recent active user as fallback", { 
-          userId: mostRecentUser.user_id, 
-          email: mostRecentUser.email,
-          lastActive: mostRecentUser.updated_at
-        });
-        
-        await addChecksToUser(supabaseClient, mostRecentUser.user_id, mostRecentUser.email, 15, logStep);
-        return;
-      }
-    }
-
-    logStep("ERROR: Could not identify user for payment", { 
-      sessionId: session.id,
-      customerId: session.customer,
-      clientIP,
-      metadata: session.metadata 
-    });
+    await addChecksToUser(supabaseClient, userId, userEmail, 15, logStep);
 
   } catch (error) {
     logStep("ERROR in processOneTimePayment", { error: error.message });
@@ -209,81 +174,40 @@ async function processPaymentIntent(
   logStep: Function
 ) {
   try {
-    let userId = paymentIntent.metadata?.user_id;
-    let userEmail = paymentIntent.metadata?.user_email;
-    const clientIP = paymentIntent.metadata?.client_ip;
+    // SECURITY: Only use user_id and email from metadata - no fallback logic
+    const userId = paymentIntent.metadata?.user_id;
+    const userEmail = paymentIntent.metadata?.user_email;
 
-    logStep("Starting payment intent processing", { userId, userEmail, customerId: paymentIntent.customer, clientIP });
+    logStep("Starting secure payment intent processing", { userId, userEmail });
 
-    // Method 1: Try metadata first
-    if (userId && userEmail) {
-      logStep("Using metadata for user identification", { userId, userEmail });
-      await addChecksToUser(supabaseClient, userId, userEmail, 15, logStep);
-      return;
+    // SECURITY: Require both user_id and email from metadata
+    if (!userId || !userEmail) {
+      logStep("SECURITY ERROR: Missing required user identification in metadata", { 
+        paymentIntentId: paymentIntent.id,
+        hasUserId: !!userId,
+        hasUserEmail: !!userEmail
+      });
+      throw new Error("Payment processing failed: insufficient user identification");
     }
 
-    // Method 2: Try to get email from Stripe customer
-    if (!userEmail && paymentIntent.customer) {
-      try {
-        const customer = await stripe.customers.retrieve(paymentIntent.customer as string);
-        if (customer && !customer.deleted) {
-          userEmail = customer.email;
-          userId = customer.metadata?.user_id;
-          logStep("Retrieved customer info from Stripe", { email: userEmail, userId });
-          
-          if (userEmail) {
-            // Look up user by email
-            const { data: userData, error: userError } = await supabaseClient
-              .from("subscribers")
-              .select("user_id, email")
-              .eq("email", userEmail)
-              .single();
+    // Verify user exists in our system
+    const { data: userData, error: userError } = await supabaseClient
+      .from("subscribers")
+      .select("user_id, email")
+      .eq("user_id", userId)
+      .eq("email", userEmail)
+      .single();
 
-            if (!userError && userData) {
-              userId = userData.user_id;
-              logStep("Found user by email lookup", { userId, email: userEmail });
-              await addChecksToUser(supabaseClient, userId, userEmail, 15, logStep);
-              return;
-            }
-          }
-        }
-      } catch (err) {
-        logStep("Error retrieving customer from Stripe", { error: err.message });
-      }
+    if (userError || !userData) {
+      logStep("SECURITY ERROR: User not found in system", { 
+        userId, 
+        userEmail, 
+        error: userError?.message 
+      });
+      throw new Error("Payment processing failed: user verification failed");
     }
 
-    // Method 3: Use IP address fallback (same as above)
-    if (clientIP && clientIP !== "unknown") {
-      logStep("Attempting IP-based user lookup", { clientIP });
-      
-      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-      
-      const { data: recentUsers, error: recentError } = await supabaseClient
-        .from("subscribers")
-        .select("user_id, email, updated_at")
-        .gte("updated_at", oneHourAgo)
-        .order("updated_at", { ascending: false })
-        .limit(5);
-
-      if (!recentError && recentUsers && recentUsers.length > 0) {
-        const mostRecentUser = recentUsers[0];
-        logStep("Using most recent active user as fallback", { 
-          userId: mostRecentUser.user_id, 
-          email: mostRecentUser.email,
-          lastActive: mostRecentUser.updated_at
-        });
-        
-        await addChecksToUser(supabaseClient, mostRecentUser.user_id, mostRecentUser.email, 15, logStep);
-        return;
-      }
-    }
-
-    logStep("ERROR: Could not identify user for payment intent", { 
-      paymentIntentId: paymentIntent.id,
-      customerId: paymentIntent.customer,
-      clientIP,
-      metadata: paymentIntent.metadata 
-    });
+    await addChecksToUser(supabaseClient, userId, userEmail, 15, logStep);
 
   } catch (error) {
     logStep("ERROR in processPaymentIntent", { error: error.message });
@@ -291,7 +215,6 @@ async function processPaymentIntent(
   }
 }
 
-// Renamed from creditChecksToUser to addChecksToUser to be clearer about the behavior
 async function addChecksToUser(
   supabaseClient: any,
   userId: string,
@@ -315,7 +238,7 @@ async function addChecksToUser(
     }
 
     const currentChecks = existingSubscriber?.remaining_checks || 0;
-    const newChecks = currentChecks + checksToAdd; // ADD instead of replace
+    const newChecks = currentChecks + checksToAdd;
 
     logStep("Adding checks to existing total", { 
       userId,
