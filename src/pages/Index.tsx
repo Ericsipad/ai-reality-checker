@@ -292,7 +292,7 @@ const Index = () => {
     }
     
     // For free users (authenticated or not), show consistent messaging
-    return `${remaining_checks} free checks left this week`;
+    return `${remaining_checks} Free checks left this week`;
   };
 
   const shouldShowUsageButton = () => {
