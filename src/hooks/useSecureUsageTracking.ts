@@ -221,17 +221,25 @@ export const useSecureUsageTracking = () => {
           return true;
         }
       } else {
-        // Deduct from weekly free credits
-        const { error } = await supabase
+        // Get current usage and increment
+        const { data: currentUsage } = await supabase
           .from('user_usage')
-          .update({ 
-            checks_used: supabase.sql`checks_used + 1`
-          })
-          .eq('user_id', user.id);
+          .select('checks_used')
+          .eq('user_id', user.id)
+          .single();
 
-        if (!error) {
-          setRemainingChecks(prev => prev - 1);
-          return true;
+        if (currentUsage) {
+          const { error } = await supabase
+            .from('user_usage')
+            .update({ 
+              checks_used: currentUsage.checks_used + 1
+            })
+            .eq('user_id', user.id);
+
+          if (!error) {
+            setRemainingChecks(prev => prev - 1);
+            return true;
+          }
         }
       }
     } catch (error) {
