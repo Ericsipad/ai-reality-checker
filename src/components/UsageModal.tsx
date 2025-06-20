@@ -31,10 +31,8 @@ const UsageModal: React.FC<UsageModalProps> = ({
 }) => {
   const { user } = useAuth();
   
-  // For authenticated pay-per-use users, totalChecks represents their purchased checks
-  // remainingChecks is what they have left
-  // So used = totalChecks - remainingChecks
-  const usedChecks = user ? (totalChecks - remainingChecks) : (totalChecks - remainingChecks);
+  // Calculate used checks properly
+  const usedChecks = totalChecks - remainingChecks;
   const progressValue = totalChecks > 0 ? (usedChecks / totalChecks) * 100 : 0;
 
   // Don't render the modal at all for subscribed users
@@ -78,10 +76,10 @@ const UsageModal: React.FC<UsageModalProps> = ({
           {remainingChecks === 0 && (
             <div className="bg-red-50 border border-red-200 rounded-lg p-4">
               <p className="text-red-600 text-sm text-center">
-                You've used all your {user ? '' : 'free'} checks. 
+                You've used all your free checks this week.
                 {user 
                   ? " Purchase more to continue detecting AI content!"
-                  : " Sign up to get more checks and premium features!"
+                  : " Sign up to get the same consistent tracking plus premium features!"
                 }
               </p>
             </div>
@@ -117,7 +115,7 @@ const UsageModal: React.FC<UsageModalProps> = ({
           {!user && (
             <div className="text-center">
               <p className="text-xs text-gray-500">
-                Sign up to get unlimited weekly checks, usage history, and premium features
+                Sign up for consistent tracking across devices, usage history, and premium features
               </p>
             </div>
           )}

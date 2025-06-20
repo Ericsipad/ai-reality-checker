@@ -33,7 +33,7 @@ const Index = () => {
     openCustomerPortal 
   } = useStripeSubscription();
 
-  // Use IP-based tracking for non-authenticated users
+  // Use IP-based tracking for non-authenticated users AND as fallback for free authenticated users
   const {
     remainingChecks: ipRemainingChecks,
     totalChecks: ipTotalChecks,
@@ -46,24 +46,22 @@ const Index = () => {
   // Determine which tracking system to use and if user has unlimited access
   const loading = user ? authLoading : ipLoading;
   const hasUnlimitedAccess = user && subscribed && (subscription_tier === 'monthly' || subscription_tier === 'yearly');
+  const isPaidUser = user && (subscribed || subscription_tier === 'pay-per-use');
   
-  // For display purposes - handle infinity properly
+  // For authenticated users without paid plans, use IP tracking to maintain consistency
+  // For paid users, use their purchased checks
   const remaining_checks = user ? 
-    (hasUnlimitedAccess ? 999999 : authRemainingChecks) : 
+    (hasUnlimitedAccess ? 999999 : 
+     isPaidUser ? authRemainingChecks : 
+     ipRemainingChecks) : 
     ipRemainingChecks;
   
-  // Fix: For authenticated users, we need to track the original total they purchased
-  // For now, we'll calculate it based on what they have remaining + what they've used
-  // This is a simplified approach - in a real app, you'd store the original purchase amount
+  // Total is always 3 for free users, or their purchased amount for paid users
   const displayTotal = user ? 
     (hasUnlimitedAccess ? 999999 : 
-     // For pay-per-use, we need to get the original total from the database
-     // For now, we'll use a reasonable estimate based on typical purchase amounts
-     authRemainingChecks <= 15 ? 15 : // If they have 15 or less, they likely bought 15
-     authRemainingChecks <= 50 ? 50 : // If they have 50 or less, they likely bought 50
-     authRemainingChecks <= 100 ? 100 : authRemainingChecks
-    ) : 
-    ipTotalChecks;
+     isPaidUser ? (authRemainingChecks <= 15 ? 15 : authRemainingChecks <= 50 ? 50 : authRemainingChecks) :
+     3) : // Free authenticated users get 3 like anonymous users
+    3;
 
   const useCheck = (): boolean => {
     // Unlimited access for active subscribers
@@ -71,12 +69,13 @@ const Index = () => {
       return true;
     }
     
-    // Use appropriate tracking system for non-unlimited users
-    if (user) {
+    // For paid users, use auth check system
+    if (user && isPaidUser) {
       return useAuthCheck();
-    } else {
-      return useIPCheck();
     }
+    
+    // For free users (authenticated or not), use IP-based tracking
+    return useIPCheck();
   };
 
   const convertFileToBase64 = (file: File): Promise<string> => {
@@ -101,9 +100,11 @@ const Index = () => {
       toast({
         title: "No checks remaining",
         description: user 
-          ? subscribed 
-            ? "Something went wrong with your subscription. Please contact support."
-            : "You've used all your checks. Purchase more to continue!"
+          ? (isPaidUser 
+              ? subscribed 
+                ? "Something went wrong with your subscription. Please contact support."
+                : "You've used all your checks. Purchase more to continue!"
+              : "You've used all your free checks this week. Sign up for more or upgrade!")
           : "You've used all your free checks this week. Sign up for more!",
         variant: "destructive",
       });
@@ -290,13 +291,8 @@ const Index = () => {
       return `${authRemainingChecks} checks remaining • Pay-per-use`;
     }
     
-    // Only show "no signup required" for non-authenticated users
-    if (!user) {
-      return `${remaining_checks} Free Checks left this week • No signup required`;
-    }
-    
-    // For authenticated users without subscription
-    return `${remaining_checks} Free Checks left this week`;
+    // For free users (authenticated or not), show consistent messaging
+    return `${remaining_checks} free checks left this week`;
   };
 
   const shouldShowUsageButton = () => {
@@ -413,7 +409,7 @@ const Index = () => {
                   size="sm"
                 >
                   <Link to="/auth?mode=signup">
-                    Sign up for more checks & features
+                    Sign up for consistent tracking & features
                   </Link>
                 </Button>
               )}

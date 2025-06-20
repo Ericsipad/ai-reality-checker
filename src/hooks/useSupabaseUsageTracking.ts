@@ -10,8 +10,8 @@ interface UsageData {
 }
 
 export const useSupabaseUsageTracking = () => {
-  const [remainingChecks, setRemainingChecks] = useState(5);
-  const [totalChecks, setTotalChecks] = useState(5);
+  const [remainingChecks, setRemainingChecks] = useState(3);
+  const [totalChecks, setTotalChecks] = useState(3);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
 
@@ -44,14 +44,16 @@ export const useSupabaseUsageTracking = () => {
         const weeksSinceReset = Math.floor((now.getTime() - lastReset.getTime()) / (7 * 24 * 60 * 60 * 1000));
 
         if (weeksSinceReset >= 1) {
-          // Reset weekly usage
+          // Reset weekly usage to 3 checks
           await resetWeeklyUsage();
         } else {
-          setTotalChecks(data.total_checks);
-          setRemainingChecks(Math.max(0, data.total_checks - data.checks_used));
+          // Always use 3 as total for free users
+          const actualTotal = 3;
+          setTotalChecks(actualTotal);
+          setRemainingChecks(Math.max(0, actualTotal - data.checks_used));
         }
       } else {
-        // If no usage record exists, create one (fallback for existing users)
+        // If no usage record exists, create one with current IP usage
         await createUsageRecord();
       }
     } catch (error) {
@@ -64,20 +66,40 @@ export const useSupabaseUsageTracking = () => {
   const createUsageRecord = async () => {
     if (!user) return;
 
+    // Try to get existing IP-based usage to preserve it
+    let existingUsage = 0;
+    try {
+      // Get client identifier similar to IP tracking
+      const userAgent = navigator.userAgent;
+      const language = navigator.language;
+      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      const screen = `${screen.width}x${screen.height}`;
+      const clientId = btoa(`${userAgent}-${language}-${timezone}-${screen}`).slice(0, 16);
+      const storageKey = `aiDetectionUsage_${clientId}`;
+      const stored = localStorage.getItem(storageKey);
+      
+      if (stored) {
+        const data = JSON.parse(stored);
+        existingUsage = data.checks_used || 0;
+      }
+    } catch (error) {
+      console.log('Could not retrieve existing usage, starting fresh');
+    }
+
     try {
       const { error } = await supabase
         .from('user_usage')
         .insert({
           user_id: user.id,
           email: user.email,
-          checks_used: 0,
-          total_checks: 5,
+          checks_used: existingUsage, // Preserve existing usage
+          total_checks: 3, // Always 3 for free users
           last_reset: new Date().toISOString()
         });
 
       if (!error) {
-        setTotalChecks(5);
-        setRemainingChecks(5);
+        setTotalChecks(3);
+        setRemainingChecks(Math.max(0, 3 - existingUsage));
       }
     } catch (error) {
       console.error('Error creating usage record:', error);
@@ -92,12 +114,14 @@ export const useSupabaseUsageTracking = () => {
         .from('user_usage')
         .update({
           checks_used: 0,
+          total_checks: 3, // Always reset to 3
           last_reset: new Date().toISOString()
         })
         .eq('user_id', user.id);
 
       if (!error) {
-        setRemainingChecks(totalChecks);
+        setTotalChecks(3);
+        setRemainingChecks(3);
       }
     } catch (error) {
       console.error('Error resetting weekly usage:', error);
@@ -123,7 +147,7 @@ export const useSupabaseUsageTracking = () => {
       const { error } = await supabase
         .from('user_usage')
         .update({
-          checks_used: totalChecks - remainingChecks + 1
+          checks_used: 3 - remainingChecks + 1 // Calculate used checks
         })
         .eq('user_id', user.id);
 
@@ -140,7 +164,7 @@ export const useSupabaseUsageTracking = () => {
 
   return {
     remainingChecks,
-    totalChecks,
+    totalChecks: 3, // Always return 3 for consistency
     useCheck,
     loading
   };

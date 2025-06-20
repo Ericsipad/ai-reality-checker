@@ -7,9 +7,21 @@ interface IPUsageData {
   last_reset: string;
 }
 
+// Helper function to get client IP (simplified for frontend)
+const getClientIdentifier = (): string => {
+  // Use a combination of factors for identification since we can't get real IP in frontend
+  const userAgent = navigator.userAgent;
+  const language = navigator.language;
+  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const screen = `${screen.width}x${screen.height}`;
+  
+  // Create a simple hash-like identifier
+  return btoa(`${userAgent}-${language}-${timezone}-${screen}`).slice(0, 16);
+};
+
 export const useIPUsageTracking = () => {
   const [remainingChecks, setRemainingChecks] = useState(3);
-  const [totalChecks] = useState(3); // Changed from variable to fixed 3
+  const [totalChecks] = useState(3);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -17,7 +29,9 @@ export const useIPUsageTracking = () => {
   }, []);
 
   const checkAndResetWeekly = () => {
-    const stored = localStorage.getItem('aiDetectionUsage_IP');
+    const clientId = getClientIdentifier();
+    const storageKey = `aiDetectionUsage_${clientId}`;
+    const stored = localStorage.getItem(storageKey);
     const now = new Date();
     
     if (stored) {
@@ -35,7 +49,7 @@ export const useIPUsageTracking = () => {
             total_checks: 3,
             last_reset: now.toISOString()
           };
-          localStorage.setItem('aiDetectionUsage_IP', JSON.stringify(newData));
+          localStorage.setItem(storageKey, JSON.stringify(newData));
           setRemainingChecks(3);
         } else {
           // Calculate remaining checks - ensure it's always based on 3 total
@@ -50,7 +64,7 @@ export const useIPUsageTracking = () => {
           total_checks: 3,
           last_reset: now.toISOString()
         };
-        localStorage.setItem('aiDetectionUsage_IP', JSON.stringify(newData));
+        localStorage.setItem(storageKey, JSON.stringify(newData));
         setRemainingChecks(3);
       }
     } else {
@@ -60,7 +74,7 @@ export const useIPUsageTracking = () => {
         total_checks: 3,
         last_reset: now.toISOString()
       };
-      localStorage.setItem('aiDetectionUsage_IP', JSON.stringify(newData));
+      localStorage.setItem(storageKey, JSON.stringify(newData));
       setRemainingChecks(3);
     }
     setLoading(false);
@@ -69,7 +83,10 @@ export const useIPUsageTracking = () => {
   const useCheck = (): boolean => {
     if (remainingChecks <= 0) return false;
 
-    const stored = localStorage.getItem('aiDetectionUsage_IP');
+    const clientId = getClientIdentifier();
+    const storageKey = `aiDetectionUsage_${clientId}`;
+    const stored = localStorage.getItem(storageKey);
+    
     if (stored) {
       try {
         const data: IPUsageData = JSON.parse(stored);
@@ -78,7 +95,7 @@ export const useIPUsageTracking = () => {
           checks_used: data.checks_used + 1,
           total_checks: 3 // Ensure total_checks is always 3
         };
-        localStorage.setItem('aiDetectionUsage_IP', JSON.stringify(newData));
+        localStorage.setItem(storageKey, JSON.stringify(newData));
         
         // Update remaining checks after successful storage
         const newRemaining = Math.max(0, 3 - newData.checks_used);
@@ -92,10 +109,32 @@ export const useIPUsageTracking = () => {
     return false;
   };
 
+  // Function to get current usage for account creation
+  const getCurrentUsage = (): { used: number; remaining: number } => {
+    const clientId = getClientIdentifier();
+    const storageKey = `aiDetectionUsage_${clientId}`;
+    const stored = localStorage.getItem(storageKey);
+    
+    if (stored) {
+      try {
+        const data: IPUsageData = JSON.parse(stored);
+        return {
+          used: data.checks_used,
+          remaining: Math.max(0, 3 - data.checks_used)
+        };
+      } catch (error) {
+        console.error('Error reading usage data:', error);
+      }
+    }
+    
+    return { used: 0, remaining: 3 };
+  };
+
   return {
     remainingChecks,
-    totalChecks: 3, // Always return 3 as total
+    totalChecks: 3,
     useCheck,
-    loading
+    loading,
+    getCurrentUsage
   };
 };
