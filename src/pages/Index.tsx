@@ -6,9 +6,11 @@ import UploadBox from '@/components/UploadBox';
 import UsageModal from '@/components/UsageModal';
 import ResultModal from '@/components/ResultModal';
 import PricingModal from '@/components/PricingModal';
+import AddToHomeScreenPrompt from '@/components/AddToHomeScreenPrompt';
 import { useAuth } from '@/contexts/AuthContext';
 import { useStripeSubscription } from '@/hooks/useStripeSubscription';
 import { useIPUsageTracking } from '@/hooks/useIPUsageTracking';
+import { useAddToHomeScreen } from '@/hooks/useAddToHomeScreen';
 import { supabase } from '@/integrations/supabase/client';
 import { Eye, FileText, Image as ImageIcon, LogIn, UserPlus, CreditCard, LogOut, Video } from 'lucide-react';
 
@@ -18,6 +20,7 @@ const Index = () => {
   const [showPricingModal, setShowPricingModal] = useState(false);
   const [analysisResult, setAnalysisResult] = useState(null);
   const { user, signOut } = useAuth();
+  const { showPrompt: showAddToHomeScreen, handleClose: handleCloseAddToHomeScreen } = useAddToHomeScreen();
   
   // Use Stripe subscription tracking for authenticated users
   const { 
@@ -479,6 +482,11 @@ const Index = () => {
         onClose={() => setShowPricingModal(false)}
         onPurchase={handlePurchase}
       />
+
+      {/* Add to Home Screen Prompt */}
+      {showAddToHomeScreen && (
+        <AddToHomeScreenPrompt onClose={handleCloseAddToHomeScreen} />
+      )}
     </div>
   );
 };

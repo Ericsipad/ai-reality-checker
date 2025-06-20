@@ -1,0 +1,27 @@
+
+{
+  "name": "Is This Real Or AI?",
+  "short_name": "RealOrAI",
+  "description": "We run your content through 27 expert AI tools — and give you one simple answer.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1e3a8a",
+  "theme_color": "#1e3a8a",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/lovable-uploads/138d05e8-4155-496e-963e-faa1a6cda460.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/lovable-uploads/138d05e8-4155-496e-963e-faa1a6cda460.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable any"
+    }
+  ],
+  "categories": ["productivity", "utilities"],
+  "screenshots": []
+}
