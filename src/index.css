@@ -111,6 +111,11 @@ html, body {
   min-height: 100dvh; /* Dynamic viewport height for mobile */
 }
 
+/* Dark mode gradient background */
+.dark .gradient-bg {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 25%, #374151 50%, #4b5563 75%, #6b7280 100%);
+}
+
 .gradient-bg::before {
   content: '';
   position: absolute;
@@ -120,6 +125,11 @@ html, body {
   bottom: 0;
   background: radial-gradient(ellipse 800px 600px at 70% 20%, rgba(99, 102, 241, 0.6) 0%, rgba(139, 92, 246, 0.4) 35%, rgba(168, 85, 247, 0.2) 70%, transparent 100%);
   z-index: 1;
+}
+
+/* Dark mode gradient overlay */
+.dark .gradient-bg::before {
+  background: radial-gradient(ellipse 800px 600px at 70% 20%, rgba(59, 130, 246, 0.3) 0%, rgba(99, 102, 241, 0.2) 35%, rgba(139, 92, 246, 0.1) 70%, transparent 100%);
 }
 
 .gradient-bg::after {
@@ -135,6 +145,11 @@ html, body {
   z-index: 1;
 }
 
+/* Dark mode secondary gradient overlay */
+.dark .gradient-bg::after {
+  background: linear-gradient(45deg, rgba(59, 130, 246, 0.2) 0%, rgba(99, 102, 241, 0.2) 50%, rgba(139, 92, 246, 0.1) 100%);
+}
+
 .gradient-bg > * {
   position: relative;
   z-index: 2;
@@ -144,4 +159,10 @@ html, body {
   background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Dark mode glass effect */
+.dark .glass-effect {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }

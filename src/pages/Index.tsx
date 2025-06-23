@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -8,6 +9,7 @@ import ResultModal from '@/components/ResultModal';
 import PricingModal from '@/components/PricingModal';
 import AddToHomeScreenPrompt from '@/components/AddToHomeScreenPrompt';
 import CookieConsent from '@/components/CookieConsent';
+import DarkModeToggle from '@/components/DarkModeToggle';
 import { useAuth } from '@/contexts/AuthContext';
 import { useStripeSubscription } from '@/hooks/useStripeSubscription';
 import { useIPUsageTracking } from '@/hooks/useIPUsageTracking';
@@ -302,14 +304,19 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen gradient-bg">
+    <div className="min-h-screen gradient-bg dark:bg-gradient-to-br dark:from-gray-900 dark:via-gray-800 dark:to-black">
       <div className="container mx-auto px-4 py-6 sm:py-8">
+        {/* Dark Mode Toggle - Top Left */}
+        <div className="absolute top-4 left-4 z-10">
+          <DarkModeToggle />
+        </div>
+
         {/* Top Navigation - Mobile Optimized */}
         <div className="flex justify-end mb-6 sm:mb-8">
           <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
             {user ? (
               <div className="flex flex-col sm:flex-row items-center space-y-2 sm:space-y-0 sm:space-x-2">
-                <span className="text-white/80 text-sm text-center sm:text-left">
+                <span className="text-white/80 dark:text-gray-300 text-sm text-center sm:text-left">
                   Welcome back!
                 </span>
                 <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
@@ -317,7 +324,7 @@ const Index = () => {
                     <Button
                       onClick={openCustomerPortal}
                       variant="outline"
-                      className="bg-white/10 border-white/30 text-white hover:bg-white/20 text-sm"
+                      className="bg-white/10 border-white/30 text-white hover:bg-white/20 dark:bg-gray-800/50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700/50 text-sm"
                       size="sm"
                     >
                       <CreditCard className="h-4 w-4 mr-2" />
@@ -328,7 +335,7 @@ const Index = () => {
                   <Button
                     onClick={handleSignOut}
                     variant="outline"
-                    className="bg-white/10 border-white/30 text-white hover:bg-white/20 text-sm"
+                    className="bg-white/10 border-white/30 text-white hover:bg-white/20 dark:bg-gray-800/50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700/50 text-sm"
                     size="sm"
                   >
                     <LogOut className="h-4 w-4 mr-2" />
@@ -341,7 +348,7 @@ const Index = () => {
                 <Button
                   asChild
                   variant="outline"
-                  className="bg-white/10 border-white/30 text-white hover:bg-white/20 text-sm"
+                  className="bg-white/10 border-white/30 text-white hover:bg-white/20 dark:bg-gray-800/50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700/50 text-sm"
                   size="sm"
                 >
                   <Link to="/auth?mode=signin">
@@ -351,7 +358,7 @@ const Index = () => {
                 </Button>
                 <Button
                   asChild
-                  className="bg-white text-purple-600 hover:bg-white/90 text-sm"
+                  className="bg-white text-purple-600 hover:bg-white/90 dark:bg-gray-200 dark:text-purple-700 dark:hover:bg-gray-100 text-sm"
                   size="sm"
                 >
                   <Link to="/auth?mode=signup">
@@ -366,10 +373,10 @@ const Index = () => {
 
         {/* Header - Mobile Optimized */}
         <div className="text-center mb-8 sm:mb-12">
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-4">
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white dark:text-gray-100 mb-4">
             Is This Real Or AI?
           </h1>
-          <p className="text-lg sm:text-xl text-white/80 mb-6 px-2">
+          <p className="text-lg sm:text-xl text-white/80 dark:text-gray-300 mb-6 px-2">
             We run your content through 27 expert AI tools — and give you one simple answer.
           </p>
           {!loading && (
@@ -379,7 +386,7 @@ const Index = () => {
                   <Button
                     onClick={() => setShowUsageModal(true)}
                     variant="outline"
-                    className="bg-white/10 border-white/30 text-white hover:bg-white/20 text-sm"
+                    className="bg-white/10 border-white/30 text-white hover:bg-white/20 dark:bg-gray-800/50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700/50 text-sm"
                     size="sm"
                   >
                     <Eye className="h-4 w-4 mr-2" />
@@ -389,7 +396,7 @@ const Index = () => {
                 {user && !subscribed && (
                   <Button
                     onClick={handleBuyMoreChecks}
-                    className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white text-sm"
+                    className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 dark:from-blue-700 dark:to-purple-700 dark:hover:from-blue-800 dark:hover:to-purple-800 text-white text-sm"
                     size="sm"
                   >
                     <CreditCard className="h-4 w-4 mr-2" />
@@ -397,7 +404,7 @@ const Index = () => {
                   </Button>
                 )}
                 {hasUnlimitedAccess && (
-                  <div className="bg-white/10 border border-white/30 text-white px-4 py-2 rounded-md text-sm flex items-center">
+                  <div className="bg-white/10 border border-white/30 text-white dark:bg-gray-800/50 dark:border-gray-600 dark:text-gray-300 px-4 py-2 rounded-md text-sm flex items-center">
                     <Eye className="h-4 w-4 mr-2" />
                     <span>{getUsageText()}</span>
                   </div>
@@ -406,7 +413,7 @@ const Index = () => {
               {!user && (
                 <Button
                   asChild
-                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white text-sm"
+                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 dark:from-blue-700 dark:to-purple-700 dark:hover:from-blue-800 dark:hover:to-purple-800 text-white text-sm"
                   size="sm"
                 >
                   <Link to="/auth?mode=signup">
@@ -423,7 +430,7 @@ const Index = () => {
           <UploadBox
             title="Text"
             description="Analyze written content for AI generation patterns"
-            icon={<FileText className="h-10 w-10 sm:h-12 sm:w-12 text-white" />}
+            icon={<FileText className="h-10 w-10 sm:h-12 sm:w-12 text-white dark:text-gray-300" />}
             acceptedTypes="text/*"
             onUpload={handleUpload}
           />
@@ -431,7 +438,7 @@ const Index = () => {
           <UploadBox
             title="Image"
             description="Detect AI-generated or manipulated images"
-            icon={<ImageIcon className="h-10 w-10 sm:h-12 sm:w-12 text-white" />}
+            icon={<ImageIcon className="h-10 w-10 sm:h-12 sm:w-12 text-white dark:text-gray-300" />}
             acceptedTypes="image/png,image/jpeg,image/jpg,image/gif,image/webp,image/bmp,image/tiff"
             disabled={false}
             onUpload={handleUpload}
@@ -440,7 +447,7 @@ const Index = () => {
           <UploadBox
             title="Video"
             description="Identify deepfakes and AI-generated videos"
-            icon={<Video className="h-10 w-10 sm:h-12 sm:w-12 text-white" />}
+            icon={<Video className="h-10 w-10 sm:h-12 sm:w-12 text-white dark:text-gray-300" />}
             acceptedTypes="video/mp4,video/avi,video/mov,video/wmv,video/flv,video/webm,video/mkv"
             disabled={false}
             onUpload={handleUpload}
@@ -452,15 +459,15 @@ const Index = () => {
           <div className="flex flex-col sm:flex-row justify-center items-center space-y-2 sm:space-y-0 sm:space-x-4 mb-2">
             <Link 
               to="/privacy" 
-              className="text-white/60 hover:text-white/80 text-sm underline transition-colors"
+              className="text-white/60 hover:text-white/80 dark:text-gray-400 dark:hover:text-gray-300 text-sm underline transition-colors"
             >
               Privacy Policy
             </Link>
           </div>
-          <p className="text-white/60 text-sm">
+          <p className="text-white/60 dark:text-gray-400 text-sm">
             © 2025 A Vobius Labs Product
           </p>
-          <p className="text-white/50 text-xs mt-1">
+          <p className="text-white/50 dark:text-gray-500 text-xs mt-1">
             Labs@vobius.com
           </p>
         </div>
